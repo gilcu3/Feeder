@@ -555,18 +555,28 @@ private fun HtmlComposer.appendTextChildren(
                     }
 
                     "img" -> {
-                        appendImage(onLinkClick = onLinkClick) { onClick ->
-                            val dimens = LocalDimens.current
-                            Column(
-                                verticalArrangement = Arrangement.spacedBy(8.dp),
-                                modifier = Modifier
-                                    .width(dimens.maxReaderWidth),
-                            ) {
-                                renderImage(
-                                    baseUrl = baseUrl,
-                                    onClick = onClick,
-                                    element = element,
-                                )
+                        val imageCandidates = getImageSource(baseUrl, element)
+
+                        // Some sites are silly and insert formatting in alt text
+                        val alt = stripHtml(element.attr("alt") ?: "")
+                        val url = imageCandidates.absSrc
+                        if (url.contains("latex")){
+                            append(alt)
+                        }
+                        else{
+                            appendImage(onLinkClick = onLinkClick) { onClick ->
+                                val dimens = LocalDimens.current
+                                Column(
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .width(dimens.maxReaderWidth),
+                                ) {
+                                    renderImage(
+                                        baseUrl = baseUrl,
+                                        onClick = onClick,
+                                        element = element,
+                                    )
+                                }
                             }
                         }
                     }
