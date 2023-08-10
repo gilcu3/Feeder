@@ -18,10 +18,10 @@ dependencyResolutionManagement {
         create("libs") {
             // Compose compiler is highly coupled to Kotlin version
             // See https://developer.android.com/jetpack/androidx/releases/compose-kotlin#pre-release_kotlin_compatibility
-            val kotlinVersion = "1.8.10"
+            val kotlinVersion = "1.8.22"
             version("kotlin", kotlinVersion)
-            version("androidPlugin", "7.4.2")
-            version("composeCompiler", "1.4.4")
+            version("androidPlugin", "8.0.2")
+            version("composeCompiler", "1.4.8")
 
             // BEGIN These should be upgraded in unison
             version("okhttp", "4.10.0")
@@ -32,10 +32,10 @@ dependencyResolutionManagement {
 
             // Rest
             version("kodein", "7.5.0")
-            version("coroutines", "1.6.4")
+            version("coroutines", "1.7.2")
             version("rome", "1.7.1-f8")
             version("moshi", "1.12.0")
-            version("threeten", "1.2.2")
+            version("desugar", "2.0.3")
             version("jsoup", "1.7.3")
             version("tagsoup", "1.2.1")
             version("readability4j", "1.0.5")
@@ -43,21 +43,21 @@ dependencyResolutionManagement {
             version("qrgen", "2.6.0")
             version("androidxCore", "1.7.0")
             version("androidxTestcore", "1.5.0")
-            version("workmanager", "2.7.0")
+            version("workmanager", "2.8.1")
             version("appcompat", "1.3.0")
             version("material", "1.6.1")
             version("preference", "1.1.0")
             version("testRunner", "1.4.0")
             version("lifecycle", "2.6.1")
-            version("room", "2.5.1")
+            version("room", "2.5.2")
             // Compose related below
-            version("compose", "2023.05.00")
+            version("compose", "2023.06.01")
             val activityCompose = "1.7.0"
             version("activityCompose", activityCompose)
-            version("paging", "3.0.0")
-            version("pagingCompose", "1.0.0-alpha17")
+            version("paging", "3.1.1")
+            version("pagingCompose", "1.0.0-alpha20")
             version("accompanist", "0.30.1")
-            version("coil", "2.2.2")
+            version("coil", "2.4.0")
             version("androidWindow", "1.0.0")
             // Formerly customtabs
             version("androidxBrowser", "1.5.0")
@@ -144,6 +144,7 @@ dependencyResolutionManagement {
                 require("1.1.0")
             }
             library("compose-material", "androidx.compose.material", "material").withoutVersion()
+            library("compose-material3-windowsizeclass", "androidx.compose.material3", "material3-window-size-class").withoutVersion()
             library(
                 "compose-material-icons-extended",
                 "androidx.compose.material",
@@ -189,11 +190,7 @@ dependencyResolutionManagement {
             ).versionRef("accompanist")
 
             // Better times
-            library(
-                "threeten.abp",
-                "com.jakewharton.threetenabp",
-                "threetenabp"
-            ).versionRef("threeten")
+            library("desugar", "com.android.tools", "desugar_jdk_libs").versionRef("desugar")
             // HTML parsing
             library("jsoup", "org.jsoup", "jsoup").versionRef("jsoup")
             library("tagsoup", "org.ccil.cowan.tagsoup", "tagsoup").versionRef("tagsoup")
@@ -286,7 +283,6 @@ dependencyResolutionManagement {
             library("mockito-core", "org.mockito", "mockito-core").versionRef("mockito")
             library("mockk", "io.mockk", "mockk").versionRef("mockk")
             library("mockwebserver", "com.squareup.okhttp3", "mockwebserver").versionRef("okhttp")
-            library("threeten.bp", "org.threeten", "threetenbp").versionRef("threeten")
 
             library("mockk-android", "io.mockk", "mockk-android").versionRef("mockk")
             library("androidx-test-core", "androidx.test", "core").versionRef("androidxTestcore")
@@ -308,6 +304,5 @@ dependencyResolutionManagement {
 rootProject.name = "feeder"
 
 include(":app")
-include(":jsonfeed-parser")
 
 includeBuild("rome")

@@ -94,6 +94,7 @@ import com.nononsenseapps.feeder.ui.compose.theme.SensibleTopAppBar
 import com.nononsenseapps.feeder.ui.compose.theme.SetStatusBarColorToMatchScrollableTopAppBar
 import com.nononsenseapps.feeder.ui.compose.utils.ImmutableHolder
 import com.nononsenseapps.feeder.ui.compose.utils.immutableListHolderOf
+import com.nononsenseapps.feeder.ui.compose.utils.isCompactDevice
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
 import com.nononsenseapps.feeder.ui.compose.utils.rememberApiPermissionState
 
@@ -364,14 +365,16 @@ fun SettingsList(
             onCheckedChanged = onShowFabChanged,
         )
 
-        MenuSetting(
-            title = stringResource(id = R.string.feed_item_style),
-            currentValue = feedItemStyleValue.asFeedItemStyleOption(),
-            values = ImmutableHolder(FeedItemStyle.values().map { it.asFeedItemStyleOption() }),
-            onSelection = {
-                onFeedItemStyleChanged(it.feedItemStyle)
-            },
-        )
+        if (isCompactDevice()) {
+            MenuSetting(
+                title = stringResource(id = R.string.feed_item_style),
+                currentValue = feedItemStyleValue.asFeedItemStyleOption(),
+                values = ImmutableHolder(FeedItemStyle.values().map { it.asFeedItemStyleOption() }),
+                onSelection = {
+                    onFeedItemStyleChanged(it.feedItemStyle)
+                },
+            )
+        }
 
         MenuSetting(
             title = stringResource(id = R.string.swipe_to_mark_as_read),
@@ -915,9 +918,9 @@ fun RadioButtonSetting(
     onClick: () -> Unit,
 ) {
     val stateLabel = if (selected) {
-        stringResource(R.string.selected)
+        stringResource(androidx.compose.ui.R.string.selected)
     } else {
-        stringResource(R.string.not_selected)
+        stringResource(androidx.compose.ui.R.string.not_selected)
     }
     val dimens = LocalDimens.current
     Row(
@@ -969,9 +972,9 @@ fun SwitchSetting(
     onCheckedChanged: (Boolean) -> Unit,
 ) {
     val stateLabel = if (checked) {
-        stringResource(R.string.on)
+        stringResource(androidx.compose.ui.R.string.on)
     } else {
-        stringResource(R.string.off)
+        stringResource(androidx.compose.ui.R.string.off)
     }
     val dimens = LocalDimens.current
     Row(

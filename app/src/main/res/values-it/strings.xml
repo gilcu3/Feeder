@@ -37,7 +37,7 @@
     <string name="new_based_on_this">Novità basate su questo</string>
     <string name="indicator_for_mark_as_read">Indicatore di lettura</string>
     <string name="share">Condividi</string>
-    <string name="no_such_feed">Impossibile trovare il feed. Riprovare utilizzando HTTPS.</string>
+    <string name="no_such_feed">Impossibile trovare il feed. Riprova utilizzando HTTPS\?</string>
     <string name="nothing_to_display">Nulla da visualizzare!</string>
     <string name="title_activity_settings">Impostazioni</string>
     <string name="all_feeds">Tutti i feed</string>
@@ -148,7 +148,7 @@
     <string name="qr_code">Codice QR</string>
     <string name="feeder_device_sync_code">Codice di sincronizzazione del dispositivo di alimentazione</string>
     <string name="leave_sync_chain">Lascia la catena di sincronizzazione</string>
-    <string name="device_sync_description_1">La sincronizzazione dei dispositivi ti permette di sincronizzare le sottoscrizioni ai feed e di leggere gli articoli tra i tuoi vari dispositivi.</string>
+    <string name="device_sync_description_1">La sincronizzazione del dispositivo ti permette di sincronizzare le iscrizioni ai feed e gli articoli letti tra i tuoi dispositivi.</string>
     <string name="scan_or_enter_code">Scansiona o inserisci il codice di sincronizzazione</string>
     <string name="device_sync">Sincronizzazione del dispositivo</string>
     <string name="device_sync_financed_by_community">Questo servizio è pagato dalla comunità. Considera la possibilità di donare se lo trovi utile.</string>
@@ -183,7 +183,7 @@
     <string name="dynamic_theme_use">Colori dinamici</string>
     <string name="article_image">Immagine dell\'articolo</string>
     <string name="feed_icon">Icona del feed</string>
-    <string name="text_scale">Scala del testo</string>
+    <string name="text_scale">Dimensione del testo</string>
     <string name="block_list_description">Nasconde gli articoli con titoli contenenti uno qualsiasi di questi filtri. Filtri di esempio:</string>
     <string name="sync_to_fetch">Sincronizza per recuperare l\'articolo</string>
     <string name="saved_articles">Articoli salvati</string>
@@ -205,4 +205,7 @@
     <string name="other_tags">%1$s etichette</string>
     <string name="many_feeds">%1$s feed</string>
     <string name="many_tags">%1$s etichette</string>
+    <string name="failed_to_fetch_full_article_missing_body">Non è stato trovato nulla da recuperare</string>
+    <string name="failed_to_fetch_full_article_missing_link">Feed senza collegamento ad articolo</string>
+    <string name="failed_to_fetch_full_article_not_html">Il collegamento non è un documento HTML</string>
 </resources>

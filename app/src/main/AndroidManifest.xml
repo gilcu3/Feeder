@@ -15,7 +15,7 @@
   <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
   <permission
-    android:name="com.nononsenseapps.feeder.permission.read"
+    android:name="${applicationId}.permission.read"
     android:description="@string/permission_read_desc"
     android:label="@string/permission_read_label" />
 
@@ -25,11 +25,10 @@
     <intent>
       <action android:name="android.intent.action.TTS_SERVICE" />
     </intent>
-    <!--    TODO implement custom text selection actions -->
-    <!--    <intent>-->
-    <!--      <action android:name="android.intent.action.PROCESS_TEXT" />-->
-    <!--      <data android:mimeType="text/plain" />-->
-    <!--    </intent>-->
+    <intent>
+      <action android:name="android.intent.action.PROCESS_TEXT" />
+      <data android:mimeType="text/plain" />
+    </intent>
   </queries>
 
   <application
@@ -191,14 +190,10 @@
       android:launchMode="singleInstance"
       android:taskAffinity="${applicationId}.OpenLinkTask" />
 
-    <service
-      android:name=".model.FeederService"
-      android:exported="true" />
-
     <provider
       android:name=".contentprovider.RSSContentProvider"
-      android:authorities="com.nononsenseapps.feeder.rssprovider"
+      android:authorities="${applicationId}.rssprovider"
       android:exported="true"
-      android:readPermission="com.nononsenseapps.feeder.permission.read" />
+      android:readPermission="${applicationId}.permission.read" />
   </application>
 </manifest>

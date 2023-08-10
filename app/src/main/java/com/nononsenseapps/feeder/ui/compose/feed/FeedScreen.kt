@@ -126,10 +126,8 @@ import com.nononsenseapps.feeder.ui.compose.theme.LocalDimens
 import com.nononsenseapps.feeder.ui.compose.theme.SensibleTopAppBar
 import com.nononsenseapps.feeder.ui.compose.theme.SetStatusBarColorToMatchScrollableTopAppBar
 import com.nononsenseapps.feeder.ui.compose.utils.ImmutableHolder
-import com.nononsenseapps.feeder.ui.compose.utils.LocalWindowSize
-import com.nononsenseapps.feeder.ui.compose.utils.WindowSize
 import com.nononsenseapps.feeder.ui.compose.utils.addMargin
-import com.nononsenseapps.feeder.ui.compose.utils.addMarginLayout
+import com.nononsenseapps.feeder.ui.compose.utils.isCompactDevice
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemMostlyVisible
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemVisible
@@ -137,14 +135,14 @@ import com.nononsenseapps.feeder.util.emailBugReportIntent
 import com.nononsenseapps.feeder.util.logDebug
 import com.nononsenseapps.feeder.util.openLinkInBrowser
 import com.nononsenseapps.feeder.util.openLinkInCustomTab
+import java.time.Instant
+import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kodein.di.compose.LocalDI
 import org.kodein.di.instance
-import org.threeten.bp.Instant
-import org.threeten.bp.LocalDateTime
 
 private const val LOG_TAG = "FEEDER_FEEDSCREEN"
 
@@ -303,6 +301,16 @@ fun FeedScreen(
                     viewModel.markAsRead(itemId, feedOrTag)
                 }
             },
+            markAsReadOnSwipe = { itemId, unread ->
+                if (viewState.onlyUnread) {
+                    // Get rid of it
+                    viewModel.markAsReadOnSwipe(itemId)
+                } else if (unread) {
+                    viewModel.markAsUnread(itemId)
+                } else {
+                    viewModel.markAsRead(itemId, null)
+                }
+            },
             markBeforeAsRead = { cursor ->
                 viewModel.markBeforeAsRead(cursor)
             },
@@ -360,6 +368,7 @@ fun FeedScreen(
     onExport: () -> Unit,
     drawerState: DrawerState,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
+    markAsReadOnSwipe: (Long, Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onOpenFeedItem: (Long) -> Unit,
@@ -594,15 +603,9 @@ fun FeedScreen(
             }
         },
     ) { innerModifier ->
-        val windowSize = LocalWindowSize()
-
-        val screenType by remember(windowSize) {
-            derivedStateOf {
-                when (windowSize) {
-                    WindowSize.Compact -> FeedScreenType.FeedList
-                    WindowSize.CompactWide, WindowSize.Medium, WindowSize.Expanded -> FeedScreenType.FeedGrid
-                }
-            }
+        val screenType = when (isCompactDevice()) {
+            true -> FeedScreenType.FeedList
+            false -> FeedScreenType.FeedGrid
         }
 
         when (screenType) {
@@ -619,6 +622,7 @@ fun FeedScreen(
                 },
                 onAddFeed = onAddFeed,
                 markAsUnread = markAsUnread,
+                markAsReadOnSwipe = markAsReadOnSwipe,
                 markBeforeAsRead = markBeforeAsRead,
                 markAfterAsRead = markAfterAsRead,
                 onItemClick = onOpenFeedItem,
@@ -641,6 +645,7 @@ fun FeedScreen(
                 },
                 onAddFeed = onAddFeed,
                 markAsUnread = markAsUnread,
+                markAsReadOnSwipe = markAsReadOnSwipe,
                 markBeforeAsRead = markBeforeAsRead,
                 markAfterAsRead = markAfterAsRead,
                 onItemClick = onOpenFeedItem,
@@ -861,6 +866,7 @@ fun FeedListContent(
     onOpenNavDrawer: () -> Unit,
     onAddFeed: () -> Unit,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
+    markAsReadOnSwipe: (Long, Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onItemClick: (Long) -> Unit,
@@ -918,9 +924,8 @@ fun FeedListContent(
                     ).run {
                         when (viewState.feedItemStyle) {
                             FeedItemStyle.CARD -> addMargin(horizontal = LocalDimens.current.margin)
-                            FeedItemStyle.COMPACT, FeedItemStyle.SUPER_COMPACT -> addMarginLayout(
-                                start = LocalDimens.current.margin,
-                            )
+                            // No margin since dividers
+                            FeedItemStyle.COMPACT, FeedItemStyle.SUPER_COMPACT -> this
                         }
                     }
                         .asPaddingValues()
@@ -938,6 +943,9 @@ fun FeedListContent(
                     pagedFeedItems.itemCount,
                     key = { itemIndex ->
                         pagedFeedItems.itemSnapshotList.items[itemIndex].id
+                    },
+                    contentType = { itemIndex ->
+                        pagedFeedItems.itemSnapshotList.items[itemIndex].contentType(viewState.feedItemStyle)
                     },
                 ) { itemIndex ->
                     val previewItem = pagedFeedItems[itemIndex]
@@ -963,10 +971,9 @@ fun FeedListContent(
 
                     SwipeableFeedItemPreview(
                         onSwipe = { currentState ->
-                            markAsUnread(
+                            markAsReadOnSwipe(
                                 previewItem.id,
                                 !currentState,
-                                null,
                             )
                         },
                         onlyUnread = viewState.onlyUnread,
@@ -974,7 +981,6 @@ fun FeedListContent(
                         showThumbnail = viewState.showThumbnails,
                         feedItemStyle = viewState.feedItemStyle,
                         swipeAsRead = viewState.swipeAsRead,
-                        newIndicator = !viewState.onlyUnread,
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)
@@ -1041,6 +1047,7 @@ fun FeedGridContent(
     onOpenNavDrawer: () -> Unit,
     onAddFeed: () -> Unit,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
+    markAsReadOnSwipe: (Long, Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onItemClick: (Long) -> Unit,
@@ -1051,6 +1058,7 @@ fun FeedGridContent(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+
     val screenHeightPx = with(LocalDensity.current) {
         LocalConfiguration.current.screenHeightDp.dp.toPx().toInt()
     }
@@ -1075,7 +1083,12 @@ fun FeedGridContent(
             )
         }
 
-        val arrangement = when (viewState.feedItemStyle) {
+        // Grid has hard-coded card
+        val feedItemStyle = remember {
+            FeedItemStyle.CARD
+        }
+
+        val arrangement = when (feedItemStyle) {
             FeedItemStyle.CARD -> Arrangement.spacedBy(LocalDimens.current.gutter)
             FeedItemStyle.COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
             FeedItemStyle.SUPER_COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
@@ -1106,45 +1119,44 @@ fun FeedGridContent(
                     key = { itemIndex ->
                         pagedFeedItems.itemSnapshotList.items[itemIndex].id
                     },
+                    contentType = { itemIndex ->
+                        pagedFeedItems.itemSnapshotList.items[itemIndex].contentType(feedItemStyle)
+                    },
                 ) { itemIndex ->
                     val previewItem = pagedFeedItems[itemIndex]
                         ?: return@items
 
-                    // TODO
-                    // Because staggered items - it is horrible when hiding read items
-                    // Because the new tag moves the text to fit - it is horrible when showing read items
-//                    if (viewState.markAsReadOnScroll && previewItem.unread) {
-//                        val visible: Boolean by gridState.rememberIsItemVisible(
-//                            key = previewItem.id,
-//                        )
-//                        val mostlyVisible: Boolean by gridState.rememberIsItemMostlyVisible(
-//                            key = previewItem.id,
-//                            screenHeightPx = screenHeightPx,
-//                        )
-//                        MarkItemAsReadOnScroll(
-//                            itemId = previewItem.id,
-//                            visible = visible,
-//                            mostlyVisible = mostlyVisible,
-//                            currentFeedOrTag = viewState.currentFeedOrTag,
-//                            coroutineScope = coroutineScope,
-//                            markAsRead = markAsUnread,
-//                        )
-//                    }
+                    // Very important that items don't change size or disappear when scrolling
+                    if (viewState.markAsReadOnScroll && previewItem.unread) {
+                        val visible: Boolean by gridState.rememberIsItemVisible(
+                            key = previewItem.id,
+                        )
+                        val mostlyVisible: Boolean by gridState.rememberIsItemMostlyVisible(
+                            key = previewItem.id,
+                            screenHeightPx = screenHeightPx,
+                        )
+                        MarkItemAsReadOnScroll(
+                            itemId = previewItem.id,
+                            visible = visible,
+                            mostlyVisible = mostlyVisible,
+                            currentFeedOrTag = viewState.currentFeedOrTag,
+                            coroutineScope = coroutineScope,
+                            markAsRead = markAsUnread,
+                        )
+                    }
 
                     SwipeableFeedItemPreview(
                         onSwipe = { currentState ->
-                            markAsUnread(
+                            markAsReadOnSwipe(
                                 previewItem.id,
                                 !currentState,
-                                null,
                             )
                         },
                         onlyUnread = viewState.onlyUnread,
                         item = previewItem,
                         showThumbnail = viewState.showThumbnails,
-                        feedItemStyle = viewState.feedItemStyle,
+                        feedItemStyle = feedItemStyle,
                         swipeAsRead = viewState.swipeAsRead,
-                        newIndicator = !viewState.onlyUnread,
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)

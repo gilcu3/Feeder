@@ -189,4 +189,23 @@
     <string name="unsave_article">Berhenti menyimpan artikel</string>
     <string name="mark_as_read_on_scroll">Tandai dibaca saat menggulir</string>
     <string name="save_article">Simpan artikel</string>
+    <string name="import_x_feeds_with_y_tags">Impor %1$s dengan %2$s\?</string>
+    <string name="few_tags">%1$s tag</string>
+    <string name="zero_tags">%1$s tag</string>
+    <string name="one_tags">%1$s tag</string>
+    <string name="two_tags">%1$s tag</string>
+    <string name="many_tags">%1$s tag</string>
+    <string name="other_tags">%1$s tag</string>
+    <string name="failed_to_fetch_full_article_not_html">Tautan bukan dokumen HTML</string>
+    <string name="no_feeds">Tidak ada umpan</string>
+    <string name="zero_feeds">%1$s umpan</string>
+    <string name="one_feed">%1$s umpan</string>
+    <string name="two_feeds">%1$s umpan</string>
+    <string name="few_feeds">%1$s umpan</string>
+    <string name="many_feeds">%1$s umpan</string>
+    <string name="other_feeds">%1$s umpan</string>
+    <string name="failed_to_fetch_full_article_missing_body">Tidak ada apa pun untuk diambil</string>
+    <string name="failed_to_fetch_full_article_missing_link">Tautan ke artikel hilang</string>
+    <string name="saved_articles">Artikel yang disimpan</string>
+    <string name="saved_article">Artikel yang disimpan</string>
 </resources>

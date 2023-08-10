@@ -22,8 +22,8 @@ android {
     namespace = "com.nononsenseapps.feeder"
     defaultConfig {
         applicationId = "com.nononsenseapps.feeder"
-        versionCode = 281
-        versionName = "2.4.19"
+        versionCode = 283
+        versionName = "2.5.0"
         compileSdk = 33
         minSdk = 23
         targetSdk = 33
@@ -39,7 +39,7 @@ android {
         javaCompileOptions {
             annotationProcessorOptions {
                 compilerArgumentProviders(
-                    RoomSchemaArgProvider(File(projectDir, "schemas"))
+                    RoomSchemaArgProvider(File(projectDir, "schemas")),
                 )
                 argument("room.incremental", "true")
             }
@@ -53,12 +53,25 @@ android {
         }
     }
 
-    if (project.hasProperty("STORE_FILE")) {
-        signingConfigs {
+    signingConfigs {
+        create("shareddebug") {
+            storeFile = rootProject.file("shareddebug.keystore")
+            storePassword = "android"
+            keyAlias = "AndroidDebugKey"
+            keyPassword = "android"
+        }
+        if (project.hasProperty("STORE_FILE")) {
             create("release") {
+                @Suppress("LocalVariableName")
                 val STORE_FILE: String by project.properties
+
+                @Suppress("LocalVariableName")
                 val STORE_PASSWORD: String by project.properties
+
+                @Suppress("LocalVariableName")
                 val KEY_ALIAS: String by project.properties
+
+                @Suppress("LocalVariableName")
                 val KEY_PASSWORD: String by project.properties
                 storeFile = file(STORE_FILE)
                 storePassword = STORE_PASSWORD
@@ -76,17 +89,14 @@ android {
             isPseudoLocalesEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
+            signingConfig = signingConfigs.getByName("shareddebug")
         }
         val debugMini by creating {
             initWith(debug)
             isMinifyEnabled = true
             isShrinkResources = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
             matchingFallbacks.add("debug")
         }
         val release by getting {
@@ -94,11 +104,14 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             if (project.hasProperty("STORE_FILE")) {
                 signingConfig = signingConfigs.getByName("release")
             }
+//            else {
+//                signingConfig = signingConfigs.getByName("shareddebug")
+//            }
         }
         val play by creating {
             applicationIdSuffix = ".play"
@@ -106,11 +119,14 @@ android {
             isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
             if (project.hasProperty("STORE_FILE")) {
                 signingConfig = signingConfigs.getByName("release")
             }
+//            else {
+//                signingConfig = signingConfigs.getByName("shareddebug")
+//            }
         }
     }
 
@@ -136,6 +152,12 @@ android {
         jvmTarget = "1.8"
     }
 
+    compileOptions {
+        isCoreLibraryDesugaringEnabled = true
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
     buildFeatures {
         compose = true
         buildConfig = true
@@ -148,7 +170,7 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = libs.versions.composeCompiler.get()
     }
-    packagingOptions {
+    packaging {
         resources {
             excludes.addAll(
                 listOf(
@@ -163,8 +185,8 @@ android {
                     "META-INF/notice.txt",
                     "META-INF/ASL2.0",
                     "META-INF/AL2.0",
-                    "META-INF/LGPL2.1"
-                )
+                    "META-INF/LGPL2.1",
+                ),
             )
         }
     }
@@ -216,6 +238,8 @@ configurations.all {
 
 dependencies {
     kapt(libs.room)
+    // For java time
+    coreLibraryDesugaring(libs.desugar)
 
     // BOMS
     implementation(platform(libs.okhttp.bom))
@@ -256,17 +280,14 @@ dependencies {
     implementation(libs.accompanist.systemuicontroller)
     implementation(libs.accompanist.navigation.animation)
     implementation(libs.accompanist.adaptive)
+    implementation(libs.compose.material3.windowsizeclass)
 
-    // Better times
-    implementation(libs.threeten.abp)
     // HTML parsing
     implementation(libs.jsoup)
     implementation(libs.tagsoup)
     // RSS
     implementation(libs.rome)
     implementation(libs.rome.modules)
-    // JSONFeed
-    implementation(project(":jsonfeed-parser"))
 
     // Includes conscrypt
     implementation(libs.bundles.okhttp.android)
@@ -302,9 +323,6 @@ dependencies {
     testImplementation(libs.mockito.core)
     testImplementation(libs.mockk)
     testImplementation(libs.mockwebserver)
-
-    // Needed for unit testing timezone stuff
-    testImplementation(libs.threeten.bp)
 
     androidTestImplementation(platform(libs.compose.bom))
 
@@ -352,7 +370,7 @@ tasks {
                 file.name.startsWith("values")
             }?.map { file ->
                 file.resolve("strings.xml")
-            } ?: error("Could not resolve values folders!")
+            } ?: error("Could not resolve values folders!"),
         )
 
         val localesConfigFile = file(projectDir.resolve("src/main/res/xml/locales_config.xml"))

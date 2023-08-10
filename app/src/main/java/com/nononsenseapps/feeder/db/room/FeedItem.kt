@@ -21,8 +21,8 @@ import com.nononsenseapps.feeder.db.COL_PLAINSNIPPET
 import com.nononsenseapps.feeder.db.COL_PLAINTITLE
 import com.nononsenseapps.feeder.db.COL_PRIMARYSORTTIME
 import com.nononsenseapps.feeder.db.COL_PUBDATE
+import com.nononsenseapps.feeder.db.COL_READ_TIME
 import com.nononsenseapps.feeder.db.COL_TITLE
-import com.nononsenseapps.feeder.db.COL_UNREAD
 import com.nononsenseapps.feeder.db.FEED_ITEMS_TABLE_NAME
 import com.nononsenseapps.feeder.model.host
 import com.nononsenseapps.feeder.ui.text.HtmlToPlainTextConverter
@@ -30,9 +30,9 @@ import com.nononsenseapps.feeder.util.relativeLinkIntoAbsolute
 import com.nononsenseapps.feeder.util.sloppyLinkToStrictURL
 import com.nononsenseapps.jsonfeed.Item
 import java.net.URI
-import org.threeten.bp.Instant
-import org.threeten.bp.ZoneOffset
-import org.threeten.bp.ZonedDateTime
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 
 const val MAX_TITLE_LENGTH = 200
 const val MAX_SNIPPET_LENGTH = 200
@@ -72,19 +72,25 @@ data class FeedItem @Ignore constructor(
     @ColumnInfo(name = COL_AUTHOR) var author: String? = null,
     @ColumnInfo(name = COL_PUBDATE, typeAffinity = ColumnInfo.TEXT) override var pubDate: ZonedDateTime? = null,
     @ColumnInfo(name = COL_LINK) override var link: String? = null,
-    @ColumnInfo(name = COL_UNREAD) var unread: Boolean = true,
+    @Deprecated("This column has been 'removed' but sqlite doesn't support drop column.", replaceWith = ReplaceWith("readTime"))
+    @ColumnInfo(name = "unread")
+    var oldUnread: Boolean = true,
     @ColumnInfo(name = COL_NOTIFIED) var notified: Boolean = false,
     @ColumnInfo(name = COL_FEEDID) var feedId: Long? = null,
     @ColumnInfo(name = COL_FIRSTSYNCEDTIME, typeAffinity = ColumnInfo.INTEGER) var firstSyncedTime: Instant = Instant.EPOCH,
     @ColumnInfo(name = COL_PRIMARYSORTTIME, typeAffinity = ColumnInfo.INTEGER) override var primarySortTime: Instant = Instant.EPOCH,
     @Deprecated("This column has been 'removed' but sqlite doesn't support drop column.")
     @ColumnInfo(name = "pinned")
-    var pinned: Boolean = false,
+    var oldPinned: Boolean = false,
     @ColumnInfo(name = COL_BOOKMARKED) var bookmarked: Boolean = false,
     @ColumnInfo(name = COL_FULLTEXT_DOWNLOADED) var fullTextDownloaded: Boolean = false,
+    @ColumnInfo(name = COL_READ_TIME, typeAffinity = ColumnInfo.INTEGER) var readTime: Instant? = null,
 ) : FeedItemForFetching, FeedItemCursor {
 
     constructor() : this(id = ID_UNSET)
+
+    val unread: Boolean
+        get() = readTime == null
 
     fun updateFromParsedEntry(
         entry: Item,
@@ -107,7 +113,7 @@ data class FeedItem @Ignore constructor(
 
         val absoluteImage = when {
             feed.feed_url != null && safeImage != null -> {
-                relativeLinkIntoAbsolute(sloppyLinkToStrictURL(feed.feed_url!!), safeImage)
+                relativeLinkIntoAbsolute(sloppyLinkToStrictURL(feed.feed_url), safeImage)
             }
             else -> safeImage
         }

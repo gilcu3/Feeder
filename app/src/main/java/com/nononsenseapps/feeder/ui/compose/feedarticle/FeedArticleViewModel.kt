@@ -26,7 +26,13 @@ import com.nononsenseapps.feeder.db.room.FeedItemForFetching
 import com.nononsenseapps.feeder.db.room.FeedTitle
 import com.nononsenseapps.feeder.db.room.ID_UNSET
 import com.nononsenseapps.feeder.model.FullTextParser
+import com.nononsenseapps.feeder.model.FullTextParsingExplainableFailure
+import com.nononsenseapps.feeder.model.FullTextParsingFailure
+import com.nononsenseapps.feeder.model.FullTextParsingSuccess
 import com.nononsenseapps.feeder.model.LocaleOverride
+import com.nononsenseapps.feeder.model.MissingBody
+import com.nononsenseapps.feeder.model.MissingLink
+import com.nononsenseapps.feeder.model.NotHtmlContent
 import com.nononsenseapps.feeder.model.PlaybackStatus
 import com.nononsenseapps.feeder.model.TTSStateHolder
 import com.nononsenseapps.feeder.model.workmanager.requestFeedSync
@@ -36,7 +42,9 @@ import com.nononsenseapps.feeder.ui.compose.feed.isNotSavedArticles
 import com.nononsenseapps.feeder.ui.compose.navdrawer.DrawerItemWithUnreadCount
 import com.nononsenseapps.feeder.ui.compose.text.htmlToAnnotatedString
 import com.nononsenseapps.feeder.util.FilePathProvider
-import java.util.*
+import java.time.Instant
+import java.time.ZonedDateTime
+import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -51,8 +59,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.kodein.di.DI
 import org.kodein.di.instance
-import org.threeten.bp.Instant
-import org.threeten.bp.ZonedDateTime
 
 class FeedArticleViewModel(
     di: DI,
@@ -117,6 +123,10 @@ class FeedArticleViewModel(
         if (feedOrTag == null || feedId == feedOrTag.id && tag == feedOrTag.tag) {
             repository.markAsReadAndNotified(itemId)
         }
+    }
+
+    fun markAsReadOnSwipe(itemId: Long) = applicationCoroutineScope.launch {
+        repository.markAsReadAndNotified(itemId = itemId, readTimeBeforeMinReadTime = true)
     }
 
     fun markBeforeAsRead(cursor: FeedItemCursor) = applicationCoroutineScope.launch {
@@ -348,8 +358,16 @@ class FeedArticleViewModel(
         setTextToDisplayFor(
             itemId,
             when (result) {
-                true -> TextToDisplay.FULLTEXT
-                false -> TextToDisplay.FAILED_TO_LOAD_FULLTEXT
+                is FullTextParsingFailure -> TextToDisplay.FAILED_TO_LOAD_FULLTEXT
+                is FullTextParsingExplainableFailure -> {
+                    when (result.exception) {
+                        is MissingBody -> TextToDisplay.FAILED_MISSING_BODY
+                        is MissingLink -> TextToDisplay.FAILED_MISSING_LINK
+                        is NotHtmlContent -> TextToDisplay.FAILED_NOT_HTML
+                    }
+                }
+
+                FullTextParsingSuccess -> TextToDisplay.FULLTEXT
             },
         )
     }
@@ -394,8 +412,12 @@ class FeedArticleViewModel(
                     }
                 }
 
-                TextToDisplay.LOADING_FULLTEXT -> null
-                TextToDisplay.FAILED_TO_LOAD_FULLTEXT -> null
+                TextToDisplay.LOADING_FULLTEXT,
+                TextToDisplay.FAILED_TO_LOAD_FULLTEXT,
+                TextToDisplay.FAILED_MISSING_BODY,
+                TextToDisplay.FAILED_MISSING_LINK,
+                TextToDisplay.FAILED_NOT_HTML,
+                -> null
             }
 
             if (fullText == null) {

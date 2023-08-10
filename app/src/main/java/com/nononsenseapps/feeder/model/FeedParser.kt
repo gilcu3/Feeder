@@ -14,7 +14,7 @@ import java.io.IOException
 import java.net.MalformedURLException
 import java.net.URL
 import java.net.URLDecoder
-import java.util.*
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers.IO
 import kotlinx.coroutines.withContext
@@ -73,7 +73,9 @@ class FeedParser(override val di: DI) : DIAware {
         html: String,
         baseUrl: URL? = null,
     ): String? {
-        val doc = Jsoup.parse(html.byteInputStream(), "UTF-8", "")
+        val doc = html.byteInputStream().use {
+            Jsoup.parse(it, "UTF-8", baseUrl?.toString() ?: "")
+        }
 
         return (
             doc.getElementsByAttributeValue("rel", "apple-touch-icon") +
@@ -100,7 +102,9 @@ class FeedParser(override val di: DI) : DIAware {
         html: String,
         baseUrl: URL? = null,
     ): List<AlternateLink> {
-        val doc = Jsoup.parse(html.byteInputStream(), "UTF-8", "")
+        val doc = html.byteInputStream().use {
+            Jsoup.parse(it, "UTF-8", "")
+        }
 
         val feeds = doc.getElementsByAttributeValue("rel", "alternate")
             ?.filter { it.hasAttr("href") && it.hasAttr("type") }

@@ -14,6 +14,8 @@ import com.nononsenseapps.feeder.util.sloppyLinkToStrictURLNoThrows
 import com.nononsenseapps.jsonfeed.Feed
 import com.nononsenseapps.jsonfeed.Item
 import java.io.IOException
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.Executors
 import kotlin.math.max
 import kotlin.system.measureTimeMillis
@@ -31,8 +33,6 @@ import okhttp3.Response
 import org.kodein.di.DI
 import org.kodein.di.DIAware
 import org.kodein.di.instance
-import org.threeten.bp.Instant
-import org.threeten.bp.temporal.ChronoUnit
 
 val singleThreadedSync = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 val syncMutex = Mutex()
@@ -243,7 +243,8 @@ class RssLocalSync(override val di: DI) : DIAware {
                         feedItemSql.feedId = feedSql.id
 
                         if (feedItemSql.guid in alreadyReadGuids) {
-                            feedItemSql.unread = false
+                            // TODO get read time from sync service
+                            feedItemSql.readTime = feedItemSql.readTime ?: Instant.now()
                             feedItemSql.notified = true
                         }
 

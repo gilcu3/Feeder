@@ -15,7 +15,6 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.decode.SvgDecoder
 import coil.disk.DiskCache
-import com.jakewharton.threetenabp.AndroidThreeTen
 import com.nononsenseapps.feeder.archmodel.Repository
 import com.nononsenseapps.feeder.db.room.AppDatabase
 import com.nononsenseapps.feeder.db.room.BlocklistDao
@@ -88,7 +87,7 @@ class FeederApplication : Application(), DIAware, ImageLoaderFactory {
                     Toast.makeText(this@FeederApplication, text, Toast.LENGTH_SHORT).show()
                 }
 
-                override suspend fun makeToast(resId: Int) {
+                override suspend fun makeToast(resId: Int) = withContext(Dispatchers.Main) {
                     Toast.makeText(this@FeederApplication, resId, Toast.LENGTH_SHORT).show()
                 }
             }
@@ -174,7 +173,6 @@ class FeederApplication : Application(), DIAware, ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
-        AndroidThreeTen.init(this)
         @Suppress("DEPRECATION")
         staticFilesDir = filesDir
     }

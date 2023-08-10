@@ -9,7 +9,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.nononsenseapps.feeder.db.COL_ID
 import java.net.URL
-import org.threeten.bp.Instant
+import java.time.Instant
 
 @Dao
 interface RemoteReadMarkDao {
@@ -33,7 +33,7 @@ interface RemoteReadMarkDao {
             FROM remote_read_mark
             INNER JOIN feed_items fi ON remote_read_mark.guid = fi.guid
             INNER JOIN feeds f on f.id = fi.feed_id
-            WHERE f.url IS remote_read_mark.feed_url AND fi.unread = 1
+            WHERE f.url IS remote_read_mark.feed_url AND fi.read_time is null
         """,
     )
     suspend fun getRemoteReadMarksReadyToBeApplied(): List<RemoteReadMarkReadyToBeApplied>

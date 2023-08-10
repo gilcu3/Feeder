@@ -18,6 +18,9 @@ import com.rometools.rome.feed.synd.SyndLink
 import com.rometools.rome.feed.synd.SyndPerson
 import java.net.URI
 import java.net.URL
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.ZonedDateTime
 import java.util.Date
 import java.util.Random
 import kotlin.test.assertEquals
@@ -25,9 +28,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
-import org.threeten.bp.Instant
-import org.threeten.bp.ZoneOffset
-import org.threeten.bp.ZonedDateTime
 
 class RomeExtensionsKtTest {
     @Test
@@ -490,6 +490,24 @@ class RomeExtensionsKtTest {
     }
 
     @Test
+    fun thumbnailFromEnclosureIsFound() {
+        val item = mockSyndEntry(
+            uri = "id",
+            enclosures = listOf(
+                mockSyndEnclosure(
+                    url = "http://foo/bar.png",
+                    type = "image/png",
+                ),
+            ),
+        ).asItem(baseUrl)
+
+        assertEquals(
+            "http://foo/bar.png",
+            item.image,
+        )
+    }
+
+    @Test
     fun publishedRFC3339Date() {
         // Need to convert it so timezone is correct for test
         val romeDate = Date(ZonedDateTime.parse("2017-11-15T22:36:36+00:00").toInstant().toEpochMilli())
@@ -617,6 +635,7 @@ class RomeExtensionsKtTest {
         mediaContents: Array<MediaContent>? = null,
         title: String? = null,
         titleEx: SyndContent? = null,
+        enclosures: List<SyndEnclosure> = emptyList(),
     ): SyndEntry {
         val mock = mock(SyndEntry::class.java)
 
@@ -632,6 +651,7 @@ class RomeExtensionsKtTest {
         `when`(mock.contents).thenReturn(contents)
         `when`(mock.publishedDate).thenReturn(publishedDate)
         `when`(mock.updatedDate).thenReturn(updatedDate)
+        `when`(mock.enclosures).thenReturn(enclosures)
 
         val mockMedia = mock(MediaEntryModule::class.java)
         val mockMetadata = mock(com.rometools.modules.mediarss.types.Metadata::class.java)
@@ -677,6 +697,7 @@ class RomeExtensionsKtTest {
         return mock
     }
 
+    @Suppress("SameParameterValue")
     private fun mockMediaContent(url: String? = null, medium: String? = null): MediaContent {
         val mock = mock(MediaContent::class.java)
         var mockRef: Reference? = null
