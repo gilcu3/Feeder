@@ -142,7 +142,7 @@
     <string name="expanded_tag">Abrir categoria</string>
     <string name="contracted_tag">Categoria fechada</string>
     <string name="failed_to_open_article">Não foi possível abrir o artigo</string>
-    <string name="unread">Não lidos</string>
+    <string name="unread_adjective">Não lidos</string>
     <string name="already_read">Já lidos</string>
     <string name="showing_all_articles">Mostrar todos os artigos</string>
     <string name="zero_unread_articles">%1$s artigos não lidos</string>
@@ -208,4 +208,5 @@
     <string name="failed_to_fetch_full_article_missing_body">Nada foi encontrado para descarregar</string>
     <string name="failed_to_fetch_full_article_not_html">A ligação não é um documento de HTML</string>
     <string name="failed_to_fetch_full_article_missing_link">O feed não tem ligação ao artigo</string>
+    <string name="theme_e_ink">Papel eletrónico</string>
 </resources>

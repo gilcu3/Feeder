@@ -32,26 +32,27 @@ import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.IconToggleButton
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CheckBox
+import androidx.compose.material.icons.filled.CheckBoxOutlineBlank
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DoneAll
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.ImportExport
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -86,7 +87,8 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -103,12 +105,16 @@ import com.nononsenseapps.feeder.db.room.ID_UNSET
 import com.nononsenseapps.feeder.model.LocaleOverride
 import com.nononsenseapps.feeder.model.opml.exportOpml
 import com.nononsenseapps.feeder.model.opml.importOpml
+import com.nononsenseapps.feeder.ui.compose.components.safeSemantics
 import com.nononsenseapps.feeder.ui.compose.deletefeed.DeletableFeed
 import com.nononsenseapps.feeder.ui.compose.deletefeed.DeleteFeedDialog
 import com.nononsenseapps.feeder.ui.compose.empty.NothingToRead
 import com.nononsenseapps.feeder.ui.compose.feedarticle.FeedArticleScreenViewState
 import com.nononsenseapps.feeder.ui.compose.feedarticle.FeedArticleViewModel
+import com.nononsenseapps.feeder.ui.compose.feedarticle.FeedListFilterCallback
 import com.nononsenseapps.feeder.ui.compose.feedarticle.FeedScreenViewState
+import com.nononsenseapps.feeder.ui.compose.feedarticle.onlyUnread
+import com.nononsenseapps.feeder.ui.compose.feedarticle.onlyUnreadAndSaved
 import com.nononsenseapps.feeder.ui.compose.material3.DrawerState
 import com.nononsenseapps.feeder.ui.compose.material3.DrawerValue
 import com.nononsenseapps.feeder.ui.compose.material3.rememberDrawerState
@@ -131,6 +137,7 @@ import com.nononsenseapps.feeder.ui.compose.utils.isCompactDevice
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemMostlyVisible
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemVisible
+import com.nononsenseapps.feeder.util.ToastMaker
 import com.nononsenseapps.feeder.util.emailBugReportIntent
 import com.nononsenseapps.feeder.util.logDebug
 import com.nononsenseapps.feeder.util.openLinkInBrowser
@@ -142,6 +149,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kodein.di.compose.LocalDI
+import org.kodein.di.compose.instance
 import org.kodein.di.instance
 
 private const val LOG_TAG = "FEEDER_FEEDSCREEN"
@@ -154,7 +162,9 @@ private const val LOG_TAG = "FEEDER_FEEDSCREEN"
 fun FeedScreen(
     navController: NavController,
     viewModel: FeedArticleViewModel,
+    navDrawerListState: LazyListState,
 ) {
+    val toastMaker: ToastMaker by instance()
     val viewState: FeedArticleScreenViewState by viewModel.viewState.collectAsStateWithLifecycle()
     val pagedFeedItems = viewModel.currentFeedListItems.collectAsLazyPagingItems()
 
@@ -210,6 +220,12 @@ fun FeedScreen(
         },
     )
 
+    // See https://issuetracker.google.com/issues/177245496#comment24
+    // After recreation, items first return 0 items, then the cached items.
+    // This behavior/issue is resetting the LazyListState scroll position.
+    // Below is a workaround. More info: https://issuetracker.google.com/issues/177245496.
+    val workaroundNavDrawerListState = rememberLazyListState()
+
     ScreenWithNavDrawer(
         feedsAndTags = ImmutableHolder(viewState.drawerItemsWithUnreadCounts),
         expandedTags = ImmutableHolder(viewState.expandedTags),
@@ -222,6 +238,10 @@ fun FeedScreen(
         },
         focusRequester = focusNavDrawer,
         drawerState = drawerState,
+        navDrawerListState = when (viewState.drawerItemsWithUnreadCounts.size) {
+            0 -> workaroundNavDrawerListState
+            else -> navDrawerListState
+        },
     ) {
         FeedScreen(
             viewState = viewState,
@@ -238,9 +258,6 @@ fun FeedScreen(
                         feedGridState.animateScrollToItem(0)
                     }
                 }
-            },
-            onToggleOnlyUnread = { value ->
-                viewModel.setShowOnlyUnread(value)
             },
             onMarkAllAsRead = {
                 viewModel.markAllAsRead()
@@ -279,20 +296,36 @@ fun FeedScreen(
                 context.startActivity(emailBugReportIntent())
             },
             onImport = {
-                opmlImporter.launch(
-                    arrayOf(
-                        // All valid for OPML files
-                        "text/xml",
-                        "text/x-opml",
-                        "application/xml",
-                        // This is the mimetype the file actually gets when exported
-                        "application/octet-stream",
-                        // But just in case a file isn't named right etc, accept all
-                        "*/*",
-                    ),
-                )
+                try {
+                    opmlImporter.launch(
+                        arrayOf(
+                            // All valid for OPML files
+                            "text/xml",
+                            "text/x-opml",
+                            "application/xml",
+                            // This is the mimetype the file actually gets when exported
+                            "application/octet-stream",
+                            // But just in case a file isn't named right etc, accept all
+                            "*/*",
+                        ),
+                    )
+                } catch (e: Exception) {
+                    // ActivityNotFoundException in particular
+                    coroutineScope.launch {
+                        toastMaker.makeToast(R.string.failed_to_import_OPML)
+                    }
+                }
             },
-            onExport = { opmlExporter.launch("feeder-export-${LocalDateTime.now()}.opml") },
+            onExport = {
+                try {
+                    opmlExporter.launch("feeder-export-${LocalDateTime.now()}.opml")
+                } catch (e: Exception) {
+                    // ActivityNotFoundException in particular
+                    coroutineScope.launch {
+                        toastMaker.makeToast(R.string.failed_to_export_OPML)
+                    }
+                }
+            },
             drawerState = drawerState,
             markAsUnread = { itemId, unread, feedOrTag ->
                 if (unread) {
@@ -301,14 +334,25 @@ fun FeedScreen(
                     viewModel.markAsRead(itemId, feedOrTag)
                 }
             },
-            markAsReadOnSwipe = { itemId, unread ->
-                if (viewState.onlyUnread) {
-                    // Get rid of it
-                    viewModel.markAsReadOnSwipe(itemId)
-                } else if (unread) {
-                    viewModel.markAsUnread(itemId)
-                } else {
-                    viewModel.markAsRead(itemId, null)
+            markAsReadOnSwipe = { itemId, unread, saved ->
+                when {
+                    viewState.filter.onlyUnread -> {
+                        // Get rid of it
+                        viewModel.markAsReadOnSwipe(itemId)
+                    }
+
+                    viewState.filter.onlyUnreadAndSaved && !saved -> {
+                        // Get rid of it
+                        viewModel.markAsReadOnSwipe(itemId)
+                    }
+
+                    unread -> {
+                        viewModel.markAsUnread(itemId)
+                    }
+
+                    else -> {
+                        viewModel.markAsRead(itemId, null)
+                    }
                 }
             },
             markBeforeAsRead = { cursor ->
@@ -334,6 +378,8 @@ fun FeedScreen(
             onSetBookmarked = { itemId, value ->
                 viewModel.setBookmarked(itemId, value)
             },
+            onShowFilterMenu = viewModel::setFilterMenuVisible,
+            filterCallback = viewModel.filterCallback,
             feedListState = feedListState,
             feedGridState = feedGridState,
             pagedFeedItems = pagedFeedItems,
@@ -347,7 +393,6 @@ fun FeedScreen(
     viewState: FeedScreenViewState,
     onRefreshVisible: () -> Unit,
     onRefreshAll: () -> Unit,
-    onToggleOnlyUnread: (Boolean) -> Unit,
     onMarkAllAsRead: () -> Unit,
     onShowToolbarMenu: (Boolean) -> Unit,
     ttsOnPlay: () -> Unit,
@@ -368,23 +413,20 @@ fun FeedScreen(
     onExport: () -> Unit,
     drawerState: DrawerState,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
-    markAsReadOnSwipe: (Long, Boolean) -> Unit,
+    markAsReadOnSwipe: (id: Long, unread: Boolean, saved: Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onOpenFeedItem: (Long) -> Unit,
     onSetBookmarked: (Long, Boolean) -> Unit,
+    onShowFilterMenu: (Boolean) -> Unit,
+    filterCallback: FeedListFilterCallback,
     feedListState: LazyListState,
     feedGridState: LazyStaggeredGridState,
     pagedFeedItems: LazyPagingItems<FeedListItem>,
     modifier: Modifier = Modifier,
 ) {
-    val showingUnreadStateLabel = if (viewState.onlyUnread) {
-        stringResource(R.string.showing_only_unread_articles)
-    } else {
-        stringResource(R.string.showing_all_articles)
-    }
-
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current
 
     FeedScreen(
         modifier = modifier,
@@ -411,25 +453,122 @@ fun FeedScreen(
         onEditFeed = onEditFeed,
         toolbarActions = {
             if (viewState.currentFeedOrTag.isNotSavedArticles) {
-                PlainTooltipBox(tooltip = { Text(showingUnreadStateLabel) }) {
-                    IconToggleButton(
-                        checked = viewState.onlyUnread,
-                        onCheckedChange = onToggleOnlyUnread,
-                        modifier = Modifier
-                            .tooltipAnchor()
-                            .semantics {
-                                stateDescription = showingUnreadStateLabel
-                            },
-                    ) {
-                        if (viewState.onlyUnread) {
+                PlainTooltipBox(tooltip = { Text(stringResource(id = R.string.filter_noun)) }) {
+                    Box {
+                        IconButton(
+                            onClick = { onShowFilterMenu(true) },
+                            modifier = Modifier.tooltipAnchor(),
+                        ) {
                             Icon(
-                                Icons.Default.VisibilityOff,
-                                contentDescription = null,
+                                Icons.Default.FilterList,
+                                contentDescription = stringResource(R.string.filter_noun),
                             )
-                        } else {
-                            Icon(
-                                Icons.Default.Visibility,
-                                contentDescription = null,
+                        }
+                        DropdownMenu(
+                            expanded = viewState.showFilterMenu,
+                            onDismissRequest = { onShowFilterMenu(false) },
+                            modifier = Modifier.onKeyEventLikeEscape {
+                                onShowFilterMenu(false)
+                            },
+                        ) {
+                            DropdownMenuItem(
+                                enabled = false,
+                                onClick = { /* Can't be modified - only shown for completeness */ },
+                                leadingIcon = {
+                                    Icon(
+                                        when (viewState.filter.unread) {
+                                            true -> Icons.Default.CheckBox
+                                            false -> Icons.Default.CheckBoxOutlineBlank
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                text = {
+                                    Text(stringResource(id = R.string.unread_adjective))
+                                },
+                                modifier = Modifier
+                                    .safeSemantics {
+                                        stateDescription = when (viewState.filter.unread) {
+                                            true -> context.getString(androidx.compose.ui.R.string.selected)
+                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                        }
+                                        role = Role.Checkbox
+                                    },
+                            )
+                            DropdownMenuItem(
+                                onClick = {
+                                    filterCallback.setSaved(!viewState.filter.saved)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        when (viewState.filter.saved) {
+                                            true -> Icons.Default.CheckBox
+                                            false -> Icons.Default.CheckBoxOutlineBlank
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                text = {
+                                    Text(stringResource(id = R.string.saved_adjective))
+                                },
+                                modifier = Modifier
+                                    .safeSemantics {
+                                        stateDescription = when (viewState.filter.saved) {
+                                            true -> context.getString(androidx.compose.ui.R.string.selected)
+                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                        }
+                                        role = Role.Checkbox
+                                    },
+                            )
+                            DropdownMenuItem(
+                                onClick = {
+                                    filterCallback.setRecentlyRead(!viewState.filter.recentlyRead)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        when (viewState.filter.recentlyRead) {
+                                            true -> Icons.Default.CheckBox
+                                            false -> Icons.Default.CheckBoxOutlineBlank
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                text = {
+                                    Text(stringResource(id = R.string.recently_read_adjective))
+                                },
+                                modifier = Modifier
+                                    .safeSemantics {
+                                        stateDescription = when (viewState.filter.recentlyRead) {
+                                            true -> context.getString(androidx.compose.ui.R.string.selected)
+                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                        }
+                                        role = Role.Checkbox
+                                    },
+                            )
+                            DropdownMenuItem(
+                                onClick = {
+                                    filterCallback.setRead(!viewState.filter.read)
+                                },
+                                leadingIcon = {
+                                    Icon(
+                                        when (viewState.filter.read) {
+                                            true -> Icons.Default.CheckBox
+                                            false -> Icons.Default.CheckBoxOutlineBlank
+                                        },
+                                        contentDescription = null,
+                                    )
+                                },
+                                text = {
+                                    Text(stringResource(id = R.string.read_adjective))
+                                },
+                                modifier = Modifier
+                                    .safeSemantics {
+                                        stateDescription = when (viewState.filter.read) {
+                                            true -> context.getString(androidx.compose.ui.R.string.selected)
+                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                        }
+                                        role = Role.Checkbox
+                                    },
                             )
                         }
                     }
@@ -866,7 +1005,7 @@ fun FeedListContent(
     onOpenNavDrawer: () -> Unit,
     onAddFeed: () -> Unit,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
-    markAsReadOnSwipe: (Long, Boolean) -> Unit,
+    markAsReadOnSwipe: (id: Long, unread: Boolean, saved: Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onItemClick: (Long) -> Unit,
@@ -974,17 +1113,20 @@ fun FeedListContent(
                             markAsReadOnSwipe(
                                 previewItem.id,
                                 !currentState,
+                                previewItem.bookmarked,
                             )
                         },
-                        onlyUnread = viewState.onlyUnread,
+                        filter = viewState.filter,
                         item = previewItem,
                         showThumbnail = viewState.showThumbnails,
                         feedItemStyle = viewState.feedItemStyle,
                         swipeAsRead = viewState.swipeAsRead,
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
+                        maxLines = viewState.maxLines,
+                        showOnlyTitle = viewState.showOnlyTitle,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)
-                            if (viewState.onlyUnread) {
+                            if (viewState.filter.onlyUnread) {
                                 coroutineScope.launch {
                                     listState.scrollToItem(0)
                                 }
@@ -1047,7 +1189,7 @@ fun FeedGridContent(
     onOpenNavDrawer: () -> Unit,
     onAddFeed: () -> Unit,
     markAsUnread: (Long, Boolean, FeedOrTag?) -> Unit,
-    markAsReadOnSwipe: (Long, Boolean) -> Unit,
+    markAsReadOnSwipe: (id: Long, unread: Boolean, saved: Boolean) -> Unit,
     markBeforeAsRead: (FeedItemCursor) -> Unit,
     markAfterAsRead: (FeedItemCursor) -> Unit,
     onItemClick: (Long) -> Unit,
@@ -1150,17 +1292,20 @@ fun FeedGridContent(
                             markAsReadOnSwipe(
                                 previewItem.id,
                                 !currentState,
+                                previewItem.bookmarked,
                             )
                         },
-                        onlyUnread = viewState.onlyUnread,
+                        filter = viewState.filter,
                         item = previewItem,
                         showThumbnail = viewState.showThumbnails,
                         feedItemStyle = feedItemStyle,
                         swipeAsRead = viewState.swipeAsRead,
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
+                        maxLines = viewState.maxLines,
+                        showOnlyTitle = viewState.showOnlyTitle,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)
-                            if (viewState.onlyUnread) {
+                            if (viewState.filter.onlyUnread) {
                                 coroutineScope.launch {
                                     gridState.scrollToItem(0)
                                 }
@@ -1200,6 +1345,7 @@ data class FeedOrTag(
     val tag: String,
 )
 
+@Suppress("unused")
 val FeedOrTag.isFeed
     get() = id > ID_UNSET
 

@@ -123,6 +123,14 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
         repository.setIsMarkAsReadOnScroll(value)
     }
 
+    fun setMaxLines(value: Int) {
+        repository.setMaxLines(value)
+    }
+
+    fun setShowOnlyTitles(value: Boolean) {
+        repository.setShowOnlyTitles(value)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val immutableFeedsSettings =
         repository.feedNotificationSettings
@@ -170,6 +178,8 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
                 repository.textScale,
                 immutableFeedsSettings,
                 repository.isMarkAsReadOnScroll,
+                repository.maxLines,
+                repository.showOnlyTitle,
             ) { params: Array<Any> ->
                 @Suppress("UNCHECKED_CAST")
                 SettingsViewState(
@@ -195,6 +205,8 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
                     textScale = params[19] as Float,
                     feedsSettings = params[20] as List<UIFeedSettings>,
                     isMarkAsReadOnScroll = params[21] as Boolean,
+                    maxLines = params[22] as Int,
+                    showOnlyTitle = params[23] as Boolean,
                 )
             }.collect {
                 _viewState.value = it
@@ -203,6 +215,7 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
     }
 
     companion object {
+        @Suppress("unused")
         private const val LOG_TAG = "FEEDER_SETTINGSVM"
     }
 }
@@ -231,6 +244,8 @@ data class SettingsViewState(
     val textScale: Float = 1f,
     val feedsSettings: List<UIFeedSettings> = emptyList(),
     val isMarkAsReadOnScroll: Boolean = false,
+    val maxLines: Int = 2,
+    val showOnlyTitle: Boolean = false,
 )
 
 data class UIFeedSettings(

@@ -23,7 +23,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.Star
@@ -65,6 +67,7 @@ import coil.size.Scale
 import com.nononsenseapps.feeder.R
 import com.nononsenseapps.feeder.db.room.ID_ALL_FEEDS
 import com.nononsenseapps.feeder.db.room.ID_SAVED_ARTICLES
+import com.nononsenseapps.feeder.ui.compose.components.safeSemantics
 import com.nononsenseapps.feeder.ui.compose.material3.DismissibleDrawerSheet
 import com.nononsenseapps.feeder.ui.compose.material3.DismissibleNavigationDrawer
 import com.nononsenseapps.feeder.ui.compose.material3.DrawerState
@@ -85,6 +88,7 @@ fun ScreenWithNavDrawer(
     onDrawerItemSelected: (Long, String) -> Unit,
     drawerState: DrawerState,
     focusRequester: FocusRequester,
+    navDrawerListState: LazyListState,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit,
 ) {
@@ -107,6 +111,7 @@ fun ScreenWithNavDrawer(
         drawerContent = {
             DismissibleDrawerSheet {
                 ListOfFeedsAndTags(
+                    state = navDrawerListState,
                     modifier = Modifier
                         .focusRequester(focusRequester),
                     feedsAndTags = feedsAndTags,
@@ -133,7 +138,7 @@ private fun ListOfFeedsAndTagsPreview() {
     FeederTheme {
         Surface {
             ListOfFeedsAndTags(
-                immutableListHolderOf(
+                feedsAndTags = immutableListHolderOf(
                     DrawerTop(unreadCount = 100, totalChildren = 4),
                     DrawerSavedArticles(unreadCount = 5),
                     DrawerTag(
@@ -181,14 +186,15 @@ private fun ListOfFeedsAndTagsPreview() {
                         tag = "",
                     ),
                 ),
-                ImmutableHolder(
+                expandedTags = ImmutableHolder(
                     setOf(
                         "News tag",
                         "Funny tag",
                     ),
                 ),
-                1,
-                {},
+                unreadBookmarksCount = 1,
+                onToggleTagExpansion = {},
+                state = rememberLazyListState(),
             ) {}
         }
     }
@@ -201,6 +207,7 @@ fun ListOfFeedsAndTags(
     expandedTags: ImmutableHolder<Set<String>>,
     unreadBookmarksCount: Int,
     onToggleTagExpansion: (String) -> Unit,
+    state: LazyListState,
     modifier: Modifier = Modifier,
     onItemClick: (FeedIdTag) -> Unit,
 ) {
@@ -213,6 +220,7 @@ fun ListOfFeedsAndTags(
         }
     }
     LazyColumn(
+        state = state,
         contentPadding = WindowInsets.systemBars.asPaddingValues(),
         modifier = modifier
             .fillMaxSize()
@@ -363,24 +371,18 @@ private fun ExpandableTag(
             .padding(top = 2.dp, bottom = 2.dp, end = 16.dp)
             .fillMaxWidth()
             .height(48.dp)
-            .semantics(mergeDescendants = true) {
-                try {
-                    stateDescription = if (expanded) {
-                        expandedLabel
-                    } else {
-                        contractedLabel
-                    }
-                    customActions = listOf(
-                        CustomAccessibilityAction(toggleExpandLabel) {
-                            onToggleExpansion(title)
-                            true
-                        },
-                    )
-                } catch (e: Exception) {
-                    // Observed nullpointer exception when setting customActions
-                    // No clue why it could be null
-                    Log.e("FeederNavDrawer", "Exception in semantics", e)
+            .safeSemantics(mergeDescendants = true) {
+                stateDescription = if (expanded) {
+                    expandedLabel
+                } else {
+                    contractedLabel
                 }
+                customActions = listOf(
+                    CustomAccessibilityAction(toggleExpandLabel) {
+                        onToggleExpansion(title)
+                        true
+                    },
+                )
             },
     ) {
         ExpandArrow(

@@ -157,7 +157,7 @@
     <string name="few_unread_articles">%1$s ulæste artikler</string>
     <string name="open_menu">Åbn menu</string>
     <string name="feed_item_style_super_compact">Super kompakt</string>
-    <string name="unread">Ulæst</string>
+    <string name="unread_adjective">Ulæst</string>
     <string name="already_read">Allerede læst</string>
     <string name="two_unread_articles">%1$s ulæste artikler</string>
     <string name="feed_item_style_card">Kort</string>
@@ -208,4 +208,22 @@
     <string name="failed_to_fetch_full_article_missing_body">Fandt intet at hente</string>
     <string name="failed_to_fetch_full_article_missing_link">Feed mangler link til artikel</string>
     <string name="failed_to_fetch_full_article_not_html">Link er ikke et HTML-dokument</string>
+    <string name="max_lines">Maks linjer</string>
+    <string name="filter_noun">Filter</string>
+    <string name="recently_read_adjective">Senest læst</string>
+    <string name="read_adjective">Læst</string>
+    <string name="saved_adjective">Gemt</string>
+    <string name="article_list_settings">Artikelliste</string>
+    <string name="show_only_title">Vis kun titel</string>
+    <string name="failed_to_download">Download mislykkedes</string>
+    <string name="no_feeds_in_the_page">Ingen feeds på siden</string>
+    <string name="failed_to_parse_the_page">Kunne ikke behandle siden</string>
+    <string name="content_is_not_html">Indhold er ikke HTML</string>
+    <string name="http_error">HTTP-fejl</string>
+    <string name="failed_to_parse_rss_feed">Kunne ikke behandle RSS-feed</string>
+    <string name="failed_to_parse_json_feed">Kunne ikke behandle JSON-feed</string>
+    <string name="no_body_in_response">Intet indhold i svar</string>
+    <string name="unsupported_content_type">Ikke-understøttet indholdstype</string>
+    <string name="failed_to_parse_full_article">Kunne ikke behandle hele artiklen</string>
+    <string name="no_url">Ingen URL</string>
 </resources>

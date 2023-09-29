@@ -15,6 +15,7 @@ import coil.decode.GifDecoder
 import coil.decode.ImageDecoderDecoder
 import coil.decode.SvgDecoder
 import coil.disk.DiskCache
+import com.danielrampelt.coil.ico.IcoDecoder
 import com.nononsenseapps.feeder.archmodel.Repository
 import com.nononsenseapps.feeder.db.room.AppDatabase
 import com.nononsenseapps.feeder.db.room.BlocklistDao
@@ -36,6 +37,7 @@ import com.nononsenseapps.feeder.util.FilePathProvider
 import com.nononsenseapps.feeder.util.ToastMaker
 import com.nononsenseapps.feeder.util.currentlyUnmetered
 import com.nononsenseapps.feeder.util.filePathProvider
+import com.nononsenseapps.feeder.util.logDebug
 import com.nononsenseapps.jsonfeed.cachingHttpClient
 import java.io.File
 import java.security.Security
@@ -103,9 +105,25 @@ class FeederApplication : Application(), DIAware, ImageLoaderFactory {
             val filePathProvider = instance<FilePathProvider>()
             cachingHttpClient(
                 cacheDirectory = (filePathProvider.httpCacheDir),
-            ).newBuilder()
-                .addNetworkInterceptor(UserAgentInterceptor)
-                .build()
+            ) {
+                addNetworkInterceptor(UserAgentInterceptor)
+                if (BuildConfig.DEBUG) {
+                    addInterceptor { chain ->
+                        val request = chain.request()
+                        logDebug(
+                            "FEEDER",
+                            "Request ${request.url} headers [${request.headers}]",
+                        )
+
+                        chain.proceed(request).also {
+                            logDebug(
+                                "FEEDER",
+                                "Response ${it.request.url} code ${it.networkResponse?.code} cached ${it.cacheResponse != null}",
+                            )
+                        }
+                    }
+                }
+            }
         }
         bind<ImageLoader>() with singleton {
             val filePathProvider = instance<FilePathProvider>()
@@ -151,6 +169,7 @@ class FeederApplication : Application(), DIAware, ImageLoaderFactory {
                     } else {
                         add(GifDecoder.Factory())
                     }
+                    add(IcoDecoder.Factory(this@FeederApplication))
                 }
                 .build()
         }

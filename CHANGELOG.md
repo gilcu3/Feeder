@@ -1,3 +1,178 @@
+# 2.6.4
+Jonas Kalderstam (7):
+  * [ef1a65b0] Improved OPML import when files are incorrect
+  * [2f564e62] Some gradle housekeeping
+  * [369a17d4] Fixed crash: Parcel: unable to marshal value HttpError
+  * [434ecae8] Fixed crash: URLDecoder: Illegal hex characters in escape
+  * [f258c45e] Fixed crash: gzip finished without exhausting source
+  * [477e3b32] Fixed crash: file:/// exposed beyond app through
+         ClipData.Item.getUri()
+  * [724d0b60] Fixed crash: No Activity found to handle Intent {
+         act=android.intent.action.CREATE_DOCUMENT
+
+Belmar Begić (1):
+  * [994c9904] Updated Bosnian translation using Weblate
+
+zmni (1):
+  * [b70c5274] Updated Indonesian translation using Weblate
+
+# 2.6.3
+Jonas Kalderstam (2):
+  * [77ec797b] Changed so sync will try to fetch the favicon of a site if no
+         feed image (one time only)
+  * [57d86668] Made builds reproducible
+
+YGXB_net (1):
+  * [278355d1] Updated Chinese (Simplified) translation using Weblate
+
+# 2.6.2
+Axus Wizix (1):
+  * [ec5281aa] Updated Russian translation using Weblate
+
+Jonas Kalderstam (6):
+  * [1195f0cc] Changed so sync uses only a single CPU-core
+  * [49a7f653] Improved some error handling
+  * [ce759df2] Fixed crash in edit feed text related to focus
+  * [91c0627e] Made the OPML importer tolerant of ill-formed XML (bad files)
+  * [272a898f] Fixed text in list possibly getting out of date with data
+  * [10d071e3] Added support for more types of feed icons
+
+YGXB_net (1):
+  * [1824a3cf] Updated Chinese (Simplified) translation using Weblate
+
+# 2.6.1
+Jonas Kalderstam (6):
+  * [08295427] Fixed a crash if device was removed from sync chain
+  * [7f4ec4f6] Implemented Either from Arrow
+  * [efe67fee] Added more descriptive error messages when feeds can not be
+         found or parsed
+  * [424007c2] Added a new theme specifically for E Ink screens
+  * [acb40347] Updated Swedish translation using Weblate
+  * [171477fa] Added some extra crash handling
+
+Agnieszka C (3):
+  * [49505e90] Updated Polish translation using Weblate
+  * [f7274779] Updated Polish translation using Weblate
+  * [f7fce9d1] Updated Polish translation using Weblate
+
+Alessandro Melillo (1):
+  * [1e488ec8] Updated Italian translation using Weblate
+
+Dan (1):
+  * [eb6eebd9] Updated Ukrainian translation using Weblate
+
+ERYpTION (1):
+  * [1db118d5] Updated Danish translation using Weblate
+
+Eduardo (1):
+  * [07dadfa5] Updated Portuguese (Brazil) translation using Weblate
+
+El Pirujo (1):
+  * [e75a810d] Updated Spanish translation using Weblate
+
+Eric (2):
+  * [7ad678a3] Updated Chinese (Simplified) translation using Weblate
+  * [ec8094fc] Updated Chinese (Simplified) translation using Weblate
+
+J. Lavoie (1):
+  * [75b785a1] Updated Slovak translation using Weblate
+
+Jani Kinnunen (1):
+  * [968c9748] Updated Finnish translation using Weblate
+
+Kingproone (1):
+  * [3ef9e526] Updated Hungarian translation using Weblate
+
+Lu Xu (1):
+  * [6392e1b5] Updated Chinese (Simplified) translation using Weblate
+
+Matth78 (2):
+  * [14284127] Updated French translation using Weblate
+  * [c4361314] Updated French translation using Weblate
+
+Nicholas La Roux (1):
+  * [5be51a61] Updated Japanese translation using Weblate
+
+Nicolas Van Damme (1):
+  * [42feb9e1] Updated Dutch translation using Weblate
+
+Oğuz Ersen (1):
+  * [93aae004] Updated Turkish translation using Weblate
+
+Retrial (1):
+  * [e51efd27] Updated Greek translation using Weblate
+
+Threat-Watch (1):
+  * [b4d0c81e] Updated Greek translation using Weblate
+
+VfBFan (1):
+  * [5e817c63] Updated German translation using Weblate
+
+WB (1):
+  * [9caae62d] Updated Galician translation using Weblate
+
+bowornsin (1):
+  * [ef1222dd] Updated Thai translation using Weblate
+
+eevan78 (1):
+  * [f1b65560] Updated Serbian translation using Weblate
+
+pchelium (1):
+  * [a0bd0cc6] Updated Czech translation using Weblate
+
+zmni (1):
+  * [a7cb24d2] Updated Indonesian translation using Weblate
+
+Ícar N. S (1):
+  * [1695a4b7] Updated Catalan translation using Weblate
+
+عمار (1):
+  * [8def65df] Updated Arabic translation using Weblate
+
+# 2.6.0
+Agnieszka C (1):
+  * [3ae0d2ab] Updated Polish translation using Weblate
+
+Dan (1):
+  * [c736b141] Updated Ukrainian translation using Weblate
+
+ERYpTION (1):
+  * [651c9ad5] Updated Danish translation using Weblate
+
+El Pirujo (1):
+  * [437f5af8] Updated Spanish translation using Weblate
+
+Eric (1):
+  * [a0d92681] Updated Chinese (Simplified) translation using Weblate
+
+Francesco Saltori (1):
+  * [9422a197] Updated Italian translation using Weblate
+
+Jonas Kalderstam (13):
+  * [1bbaa426] Changed so navigation drawer now remembers scroll position
+  * [7454a239] Fixed deleting current feed will switch to All Feeds view
+  * [80f209e1] Changed so the Mark All as Read button (FAB) will also
+         immediately hide all items
+  * [61b79f4b] Added new option to configure max lines for items in list
+  * [4800309f] Changed Compact article style to match other styles and take
+         advantage of configurable max lines
+  * [4472d2c9] Improved image loading in reader
+  * [468d953a] Added new filter options
+  * [98c2a504] Increased icon size in SuperCompact style
+  * [9f177538] Renamed some string names to make it clear if they are
+         adjectives or nouns during translation
+  * [c426488c] Fixed talkback on new filter menu
+  * [3c6c63b6] Added new setting for limiting list items to only title or
+         not
+  * [22b5a4f8] Fixed crash with device sync (#84)
+  * [052c6e48] Updated Swedish translation using Weblate
+
+Matth78 (1):
+  * [1c4d1d71] Updated French translation using Weblate
+
+Weblate (bot) (1):
+  * [6fb87310] Updated Czech translation using Weblate (#80)
+
 # 2.5.0
 Agnieszka C (1):
   * [0818b4a7] Updated Polish translation using Weblate

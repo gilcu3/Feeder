@@ -114,7 +114,7 @@
     <string name="showing_all_articles">Visar alla artiklar</string>
     <string name="showing_only_unread_articles">Visar bara olästa artiklar</string>
     <string name="already_read">Redan läst</string>
-    <string name="unread">Oläst</string>
+    <string name="unread_adjective">Oläst</string>
     <string name="go_to_feed">Öppna %1$s</string>
     <string name="open_menu">Öppna meny</string>
     <string name="go_back">Gå tillbaka</string>
@@ -208,4 +208,24 @@
     <string name="failed_to_fetch_full_article_missing_body">Hittade ingenting att hämta</string>
     <string name="failed_to_fetch_full_article_missing_link">Flödet saknar länk till artikeln</string>
     <string name="failed_to_fetch_full_article_not_html">Länken är inte ett HTML-dokument</string>
+    <string name="article_list_settings">Artikellista</string>
+    <string name="max_lines">Max antal linjer</string>
+    <string name="filter_noun">Filter</string>
+    <string name="recently_read_adjective">Nyligen lästa</string>
+    <string name="read_adjective">Lästa</string>
+    <string name="saved_adjective">Sparade</string>
+    <string name="show_only_title">Visa endast titel</string>
+    <string name="failed_to_download">Kunde inte hämta</string>
+    <string name="failed_to_parse_the_page">Kunde inte läsa sidan</string>
+    <string name="no_feeds_in_the_page">Inga flöden i sidan</string>
+    <string name="content_is_not_html">Innehållet är inte HTML</string>
+    <string name="failed_to_parse_rss_feed">Kunde inte läsa RSS-flöde</string>
+    <string name="http_error">HTTP-fel</string>
+    <string name="failed_to_parse_json_feed">Kunde inte läsa JSON-flöde</string>
+    <string name="no_body_in_response">Inget att läsa i svar</string>
+    <string name="unsupported_content_type">Innehållstypen stöds inte</string>
+    <string name="failed_to_parse_full_article">Kund inte läsa hela artikeln</string>
+    <string name="no_url">Ingen URL</string>
+    <string name="theme_e_ink">Läsplatta</string>
+    <string name="add_anyway">Lägg till ändå</string>
 </resources>

@@ -113,7 +113,7 @@
     <string name="expanded_tag">Buka tag</string>
     <string name="contracted_tag">Tutup tag</string>
     <string name="go_to_feed">Kunjungi %1$s</string>
-    <string name="unread">Belum dibaca</string>
+    <string name="unread_adjective">Belum dibaca</string>
     <string name="already_read">Sudah dibaca</string>
     <string name="showing_only_unread_articles">Hanya menampilkan artikel belum dibaca</string>
     <string name="showing_all_articles">Menampilkan semua artikel</string>
@@ -208,4 +208,23 @@
     <string name="failed_to_fetch_full_article_missing_link">Tautan ke artikel hilang</string>
     <string name="saved_articles">Artikel yang disimpan</string>
     <string name="saved_article">Artikel yang disimpan</string>
+    <string name="max_lines">Baris maks</string>
+    <string name="read_adjective">Baca</string>
+    <string name="saved_adjective">Disimpan</string>
+    <string name="show_only_title">Hanya tampilkan judul</string>
+    <string name="article_list_settings">Daftar artikel</string>
+    <string name="theme_e_ink">Kertas elektronik</string>
+    <string name="failed_to_parse_json_feed">Gagal membuka umpan JSON</string>
+    <string name="failed_to_parse_full_article">Gagal membuka keseluruhan artikel</string>
+    <string name="filter_noun">Filter</string>
+    <string name="recently_read_adjective">Baru saja dibaca</string>
+    <string name="no_feeds_in_the_page">Tidak ada umpan dalam halaman</string>
+    <string name="no_body_in_response">Tidak ada isi dalam respons</string>
+    <string name="http_error">Galat HTTP</string>
+    <string name="no_url">Tidak ada URL</string>
+    <string name="failed_to_parse_the_page">Gagal membuka halaman</string>
+    <string name="failed_to_parse_rss_feed">Gagal membuka umpan RSS</string>
+    <string name="unsupported_content_type">Tipe konten tidak didukung</string>
+    <string name="failed_to_download">Gagal mengunduh</string>
+    <string name="content_is_not_html">Konten bukan HTML</string>
 </resources>

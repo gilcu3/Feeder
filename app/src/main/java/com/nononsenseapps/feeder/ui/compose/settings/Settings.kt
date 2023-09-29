@@ -85,6 +85,7 @@ import com.nononsenseapps.feeder.archmodel.SortingOptions
 import com.nononsenseapps.feeder.archmodel.SwipeAsRead
 import com.nononsenseapps.feeder.archmodel.SyncFrequency
 import com.nononsenseapps.feeder.archmodel.ThemeOptions
+import com.nononsenseapps.feeder.ui.compose.components.safeSemantics
 import com.nononsenseapps.feeder.ui.compose.dialog.EditableListDialog
 import com.nononsenseapps.feeder.ui.compose.dialog.FeedNotificationsDialog
 import com.nononsenseapps.feeder.ui.compose.feed.ExplainPermissionDialog
@@ -184,6 +185,10 @@ fun SettingsScreen(
             onToggleNotification = settingsViewModel::toggleNotifications,
             isMarkAsReadOnScroll = viewState.isMarkAsReadOnScroll,
             onMarkAsReadOnScroll = settingsViewModel::setIsMarkAsReadOnScroll,
+            maxLines = viewState.maxLines,
+            setMaxLines = settingsViewModel::setMaxLines,
+            showOnlyTitle = viewState.showOnlyTitle,
+            onShowOnlyTitle = settingsViewModel::setShowOnlyTitles,
             modifier = Modifier.padding(padding),
         )
     }
@@ -241,6 +246,10 @@ fun SettingsScreenPreview() {
                 onToggleNotification = { _, _ -> },
                 isMarkAsReadOnScroll = false,
                 onMarkAsReadOnScroll = {},
+                maxLines = 2,
+                setMaxLines = {},
+                showOnlyTitle = false,
+                onShowOnlyTitle = {},
                 modifier = Modifier,
             )
         }
@@ -294,6 +303,10 @@ fun SettingsList(
     onToggleNotification: (Long, Boolean) -> Unit,
     isMarkAsReadOnScroll: Boolean,
     onMarkAsReadOnScroll: (Boolean) -> Unit,
+    maxLines: Int,
+    setMaxLines: (Int) -> Unit,
+    showOnlyTitle: Boolean,
+    onShowOnlyTitle: (Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val scrollState = rememberScrollState()
@@ -315,6 +328,7 @@ fun SettingsList(
                 ThemeOptions.SYSTEM.asThemeOption(),
                 ThemeOptions.DAY.asThemeOption(),
                 ThemeOptions.NIGHT.asThemeOption(),
+                ThemeOptions.E_INK.asThemeOption(),
             ),
             title = stringResource(id = R.string.theme),
             onSelection = onThemeChanged,
@@ -347,48 +361,6 @@ fun SettingsList(
                 DarkThemePreferences.DARK.asDarkThemeOption(),
             ),
             onSelection = onDarkThemePreferenceChanged,
-        )
-
-        MenuSetting(
-            currentValue = currentSortingValue,
-            values = immutableListHolderOf(
-                SortingOptions.NEWEST_FIRST.asSortOption(),
-                SortingOptions.OLDEST_FIRST.asSortOption(),
-            ),
-            title = stringResource(id = R.string.sort),
-            onSelection = onSortingChanged,
-        )
-
-        SwitchSetting(
-            title = stringResource(id = R.string.show_fab),
-            checked = showFabValue,
-            onCheckedChanged = onShowFabChanged,
-        )
-
-        if (isCompactDevice()) {
-            MenuSetting(
-                title = stringResource(id = R.string.feed_item_style),
-                currentValue = feedItemStyleValue.asFeedItemStyleOption(),
-                values = ImmutableHolder(FeedItemStyle.values().map { it.asFeedItemStyleOption() }),
-                onSelection = {
-                    onFeedItemStyleChanged(it.feedItemStyle)
-                },
-            )
-        }
-
-        MenuSetting(
-            title = stringResource(id = R.string.swipe_to_mark_as_read),
-            currentValue = swipeAsReadValue.asSwipeAsReadOption(),
-            values = ImmutableHolder(SwipeAsRead.values().map { it.asSwipeAsReadOption() }),
-            onSelection = {
-                onSwipeAsReadOptionChanged(it.swipeAsRead)
-            },
-        )
-
-        SwitchSetting(
-            title = stringResource(id = R.string.mark_as_read_on_scroll),
-            checked = isMarkAsReadOnScroll,
-            onCheckedChanged = onMarkAsReadOnScroll,
         )
 
         ListDialogSetting(
@@ -513,15 +485,64 @@ fun SettingsList(
 
         GroupTitle { innerModifier ->
             Text(
-                stringResource(id = R.string.image_loading),
+                stringResource(id = R.string.article_list_settings),
                 modifier = innerModifier,
             )
         }
 
+        MenuSetting(
+            currentValue = currentSortingValue,
+            values = immutableListHolderOf(
+                SortingOptions.NEWEST_FIRST.asSortOption(),
+                SortingOptions.OLDEST_FIRST.asSortOption(),
+            ),
+            title = stringResource(id = R.string.sort),
+            onSelection = onSortingChanged,
+        )
+
         SwitchSetting(
-            title = stringResource(id = R.string.only_on_wifi),
-            checked = loadImageOnlyOnWifiValue,
-            onCheckedChanged = onLoadImageOnlyOnWifiChanged,
+            title = stringResource(id = R.string.show_fab),
+            checked = showFabValue,
+            onCheckedChanged = onShowFabChanged,
+        )
+
+        if (isCompactDevice()) {
+            MenuSetting(
+                title = stringResource(id = R.string.feed_item_style),
+                currentValue = feedItemStyleValue.asFeedItemStyleOption(),
+                values = ImmutableHolder(FeedItemStyle.values().map { it.asFeedItemStyleOption() }),
+                onSelection = {
+                    onFeedItemStyleChanged(it.feedItemStyle)
+                },
+            )
+        }
+
+        MenuSetting(
+            title = stringResource(id = R.string.max_lines),
+            currentValue = maxLines,
+            values = ImmutableHolder(listOf(1, 2, 3, 4, 5, 6, 7, 8, 9, 10)),
+            onSelection = setMaxLines,
+        )
+
+        SwitchSetting(
+            title = stringResource(id = R.string.show_only_title),
+            checked = showOnlyTitle,
+            onCheckedChanged = onShowOnlyTitle,
+        )
+
+        MenuSetting(
+            title = stringResource(id = R.string.swipe_to_mark_as_read),
+            currentValue = swipeAsReadValue.asSwipeAsReadOption(),
+            values = ImmutableHolder(SwipeAsRead.values().map { it.asSwipeAsReadOption() }),
+            onSelection = {
+                onSwipeAsReadOptionChanged(it.swipeAsRead)
+            },
+        )
+
+        SwitchSetting(
+            title = stringResource(id = R.string.mark_as_read_on_scroll),
+            checked = isMarkAsReadOnScroll,
+            onCheckedChanged = onMarkAsReadOnScroll,
         )
 
         SwitchSetting(
@@ -562,6 +583,21 @@ fun SettingsList(
             onSelection = {
                 onLinkOpenerChanged(it.linkOpener)
             },
+        )
+
+        Divider(modifier = Modifier.width(dimens.maxContentWidth))
+
+        GroupTitle { innerModifier ->
+            Text(
+                stringResource(id = R.string.image_loading),
+                modifier = innerModifier,
+            )
+        }
+
+        SwitchSetting(
+            title = stringResource(id = R.string.only_on_wifi),
+            checked = loadImageOnlyOnWifiValue,
+            onCheckedChanged = onLoadImageOnlyOnWifiChanged,
         )
 
         Divider(modifier = Modifier.width(dimens.maxContentWidth))
@@ -928,7 +964,7 @@ fun RadioButtonSetting(
             .width(dimens.maxContentWidth)
             .heightIn(min = minHeight)
             .clickable { onClick() }
-            .semantics(mergeDescendants = true) {
+            .safeSemantics(mergeDescendants = true) {
                 role = Role.RadioButton
                 stateDescription = stateLabel
             },
@@ -971,11 +1007,7 @@ fun SwitchSetting(
     enabled: Boolean = true,
     onCheckedChanged: (Boolean) -> Unit,
 ) {
-    val stateLabel = if (checked) {
-        stringResource(androidx.compose.ui.R.string.on)
-    } else {
-        stringResource(androidx.compose.ui.R.string.off)
-    }
+    val context = LocalContext.current
     val dimens = LocalDimens.current
     Row(
         modifier = modifier
@@ -985,8 +1017,11 @@ fun SwitchSetting(
                 enabled = enabled,
                 onClick = { onCheckedChanged(!checked) },
             )
-            .semantics(mergeDescendants = true) {
-                stateDescription = stateLabel
+            .safeSemantics(mergeDescendants = true) {
+                stateDescription = when (checked) {
+                    true -> context.getString(androidx.compose.ui.R.string.on)
+                    else -> context.getString(androidx.compose.ui.R.string.off)
+                }
                 role = Role.Switch
             },
         verticalAlignment = Alignment.CenterVertically,
@@ -1040,7 +1075,7 @@ fun ScaleSetting(
             .width(dimens.maxContentWidth)
             .heightIn(min = 64.dp)
             .padding(start = 64.dp)
-            .semantics(mergeDescendants = true) {
+            .safeSemantics(mergeDescendants = true) {
                 stateDescription = "%.1fx".format(safeCurrentValue)
             },
     ) {

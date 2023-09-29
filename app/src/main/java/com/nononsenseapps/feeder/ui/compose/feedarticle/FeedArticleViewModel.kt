@@ -26,19 +26,16 @@ import com.nononsenseapps.feeder.db.room.FeedItemForFetching
 import com.nononsenseapps.feeder.db.room.FeedTitle
 import com.nononsenseapps.feeder.db.room.ID_UNSET
 import com.nononsenseapps.feeder.model.FullTextParser
-import com.nononsenseapps.feeder.model.FullTextParsingExplainableFailure
-import com.nononsenseapps.feeder.model.FullTextParsingFailure
-import com.nononsenseapps.feeder.model.FullTextParsingSuccess
 import com.nononsenseapps.feeder.model.LocaleOverride
-import com.nononsenseapps.feeder.model.MissingBody
-import com.nononsenseapps.feeder.model.MissingLink
-import com.nononsenseapps.feeder.model.NotHtmlContent
+import com.nononsenseapps.feeder.model.NoBody
+import com.nononsenseapps.feeder.model.NoUrl
+import com.nononsenseapps.feeder.model.NotHTML
 import com.nononsenseapps.feeder.model.PlaybackStatus
 import com.nononsenseapps.feeder.model.TTSStateHolder
+import com.nononsenseapps.feeder.model.UnsupportedContentType
 import com.nononsenseapps.feeder.model.workmanager.requestFeedSync
 import com.nononsenseapps.feeder.ui.compose.feed.FeedListItem
 import com.nononsenseapps.feeder.ui.compose.feed.FeedOrTag
-import com.nononsenseapps.feeder.ui.compose.feed.isNotSavedArticles
 import com.nononsenseapps.feeder.ui.compose.navdrawer.DrawerItemWithUnreadCount
 import com.nononsenseapps.feeder.ui.compose.text.htmlToAnnotatedString
 import com.nononsenseapps.feeder.util.FilePathProvider
@@ -63,7 +60,7 @@ import org.kodein.di.instance
 class FeedArticleViewModel(
     di: DI,
     private val state: SavedStateHandle,
-) : DIAwareViewModel(di) {
+) : DIAwareViewModel(di), FeedListFilterCallback {
     private val repository: Repository by instance()
     private val ttsStateHolder: TTSStateHolder by instance()
     private val fullTextParser: FullTextParser by instance()
@@ -99,10 +96,6 @@ class FeedArticleViewModel(
                 SharingStarted.Eagerly,
                 emptyList(),
             )
-
-    fun setShowOnlyUnread(value: Boolean) = viewModelScope.launch {
-        repository.setShowOnlyUnread(value)
-    }
 
     fun deleteFeeds(feedIds: List<Long>) = applicationCoroutineScope.launch {
         repository.deleteFeeds(feedIds)
@@ -167,6 +160,16 @@ class FeedArticleViewModel(
         state["toolbarMenuVisible"] = visible
         toolbarVisible.update { visible }
     }
+
+    private val filterMenuVisible: MutableStateFlow<Boolean> =
+        MutableStateFlow(state["filterMenuVisible"] ?: false)
+
+    fun setFilterMenuVisible(visible: Boolean) {
+        state["filterMenuVisible"] = visible
+        filterMenuVisible.update { visible }
+    }
+
+    val filterCallback: FeedListFilterCallback = this
 
     fun toggleTagExpansion(tag: String) = repository.toggleTagExpansion(tag)
 
@@ -246,7 +249,6 @@ class FeedArticleViewModel(
 
     val viewState: StateFlow<FeedArticleScreenViewState> =
         combine(
-            repository.showOnlyUnread,
             repository.showFab,
             repository.showThumbnails,
             repository.currentTheme,
@@ -271,38 +273,37 @@ class FeedArticleViewModel(
             ttsStateHolder.availableLanguages,
             repository.getUnreadBookmarksCount,
             repository.isMarkAsReadOnScroll,
+            repository.maxLines,
+            filterMenuVisible,
+            repository.feedListFilter,
+            repository.showOnlyTitle,
         ) { params: Array<Any> ->
-            @Suppress("UNCHECKED_CAST")
-            val article = params[17] as Article
+            val article = params[16] as Article
 
-            @Suppress("UNCHECKED_CAST")
-            val ttsState = params[18] as PlaybackStatus
+            val ttsState = params[17] as PlaybackStatus
 
-            @Suppress("UNCHECKED_CAST")
-            val haveVisibleFeedItems = (params[9] as Int) > 0
+            val haveVisibleFeedItems = (params[8] as Int) > 0
 
-            @Suppress("UNCHECKED_CAST")
-            val currentFeedOrTag = params[16] as FeedOrTag
+            val currentFeedOrTag = params[15] as FeedOrTag
 
             @Suppress("UNCHECKED_CAST")
             FeedArticleScreenViewState(
-                onlyUnread = currentFeedOrTag.isNotSavedArticles && (params[0] as Boolean),
-                showFab = haveVisibleFeedItems && (params[1] as Boolean),
-                showThumbnails = params[2] as Boolean,
-                currentTheme = params[3] as ThemeOptions,
-                latestSyncTimestamp = params[4] as Instant,
-                drawerItemsWithUnreadCounts = params[5] as List<DrawerItemWithUnreadCount>,
-                feedItemStyle = params[6] as FeedItemStyle,
-                expandedTags = params[7] as Set<String>,
-                showToolbarMenu = params[8] as Boolean,
+                showFab = haveVisibleFeedItems && (params[0] as Boolean),
+                showThumbnails = params[1] as Boolean,
+                currentTheme = params[2] as ThemeOptions,
+                latestSyncTimestamp = params[3] as Instant,
+                drawerItemsWithUnreadCounts = params[4] as List<DrawerItemWithUnreadCount>,
+                feedItemStyle = params[5] as FeedItemStyle,
+                expandedTags = params[6] as Set<String>,
+                showToolbarMenu = params[7] as Boolean,
                 haveVisibleFeedItems = haveVisibleFeedItems,
-                feedScreenTitle = params[10] as ScreenTitle,
-                showEditDialog = params[11] as Boolean,
-                showDeleteDialog = params[12] as Boolean,
-                visibleFeeds = params[13] as List<FeedTitle>,
+                feedScreenTitle = params[9] as ScreenTitle,
+                showEditDialog = params[10] as Boolean,
+                showDeleteDialog = params[11] as Boolean,
+                visibleFeeds = params[12] as List<FeedTitle>,
                 articleFeedUrl = article.feedUrl,
                 articleFeedId = article.feedId,
-                linkOpener = params[15] as LinkOpener,
+                linkOpener = params[14] as LinkOpener,
                 pubDate = article.pubDate,
                 author = article.author,
                 enclosure = article.enclosure,
@@ -314,13 +315,17 @@ class FeedArticleViewModel(
                 isTTSPlaying = ttsState == PlaybackStatus.PLAYING,
                 isBottomBarVisible = ttsState != PlaybackStatus.STOPPED,
                 articleId = article.id,
-                isArticleOpen = params[14] as Boolean,
-                swipeAsRead = params[19] as SwipeAsRead,
+                isArticleOpen = params[13] as Boolean,
+                swipeAsRead = params[18] as SwipeAsRead,
                 isBookmarked = article.bookmarked,
-                useDetectLanguage = params[21] as Boolean,
-                ttsLanguages = params[22] as List<Locale>,
-                unreadBookmarksCount = params[23] as Int,
-                markAsReadOnScroll = params[24] as Boolean,
+                useDetectLanguage = params[20] as Boolean,
+                ttsLanguages = params[21] as List<Locale>,
+                unreadBookmarksCount = params[22] as Int,
+                markAsReadOnScroll = params[23] as Boolean,
+                maxLines = params[24] as Int,
+                showFilterMenu = params[25] as Boolean,
+                filter = params[26] as FeedListFilter,
+                showOnlyTitle = params[27] as Boolean,
             )
         }
             .stateIn(
@@ -357,17 +362,17 @@ class FeedArticleViewModel(
 
         setTextToDisplayFor(
             itemId,
-            when (result) {
-                is FullTextParsingFailure -> TextToDisplay.FAILED_TO_LOAD_FULLTEXT
-                is FullTextParsingExplainableFailure -> {
-                    when (result.exception) {
-                        is MissingBody -> TextToDisplay.FAILED_MISSING_BODY
-                        is MissingLink -> TextToDisplay.FAILED_MISSING_LINK
-                        is NotHtmlContent -> TextToDisplay.FAILED_NOT_HTML
+            when {
+                result.isRight() -> TextToDisplay.FULLTEXT
+                else -> {
+                    when (result.leftOrNull()) {
+                        is NoBody -> TextToDisplay.FAILED_MISSING_BODY
+                        is NoUrl -> TextToDisplay.FAILED_MISSING_LINK
+                        is UnsupportedContentType -> TextToDisplay.FAILED_NOT_HTML
+                        is NotHTML -> TextToDisplay.FAILED_NOT_HTML
+                        else -> TextToDisplay.FAILED_TO_LOAD_FULLTEXT
                     }
                 }
-
-                FullTextParsingSuccess -> TextToDisplay.FULLTEXT
             },
         )
     }
@@ -435,11 +440,22 @@ class FeedArticleViewModel(
         super.onCleared()
         ttsStateHolder.shutdown()
     }
+
+    override fun setSaved(value: Boolean) {
+        repository.setFeedListFilterSaved(value)
+    }
+
+    override fun setRecentlyRead(value: Boolean) {
+        repository.setFeedListFilterRecentlyRead(value)
+    }
+
+    override fun setRead(value: Boolean) {
+        repository.setFeedListFilterRead(value)
+    }
 }
 
 interface FeedScreenViewState {
     val currentFeedOrTag: FeedOrTag
-    val onlyUnread: Boolean
     val showFab: Boolean
     val showThumbnails: Boolean
     val currentTheme: ThemeOptions
@@ -459,6 +475,10 @@ interface FeedScreenViewState {
     val haveVisibleFeedItems: Boolean
     val swipeAsRead: SwipeAsRead
     val markAsReadOnScroll: Boolean
+    val maxLines: Int
+    val showOnlyTitle: Boolean
+    val filter: FeedListFilter
+    val showFilterMenu: Boolean
 }
 
 interface ArticleScreenViewState {
@@ -486,6 +506,32 @@ interface ArticleItemKeyHolder {
     fun getAndIncrementKey(): Long
 }
 
+interface FeedListFilter {
+    val unread: Boolean
+    val saved: Boolean
+    val recentlyRead: Boolean
+    val read: Boolean
+}
+
+val emptyFeedListFilter = object : FeedListFilter {
+    override val unread: Boolean = true
+    override val saved: Boolean = false
+    override val recentlyRead: Boolean = false
+    override val read: Boolean = false
+}
+
+interface FeedListFilterCallback {
+    fun setSaved(value: Boolean)
+    fun setRecentlyRead(value: Boolean)
+    fun setRead(value: Boolean)
+}
+
+val FeedListFilter.onlyUnread: Boolean
+    get() = unread && !saved && !recentlyRead && !read
+
+val FeedListFilter.onlyUnreadAndSaved: Boolean
+    get() = unread && saved && !recentlyRead && !read
+
 object RotatingArticleItemKeyHolder : ArticleItemKeyHolder {
     private var key: Long = 0L
     override fun getAndIncrementKey(): Long {
@@ -496,7 +542,6 @@ object RotatingArticleItemKeyHolder : ArticleItemKeyHolder {
 @Immutable
 data class FeedArticleScreenViewState(
     override val currentFeedOrTag: FeedOrTag = FeedOrTag(ID_UNSET, ""),
-    override val onlyUnread: Boolean = true,
     override val showFab: Boolean = true,
     override val showThumbnails: Boolean = true,
     override val currentTheme: ThemeOptions = ThemeOptions.SYSTEM,
@@ -532,5 +577,9 @@ data class FeedArticleScreenViewState(
     override val useDetectLanguage: Boolean = false,
     override val markAsReadOnScroll: Boolean = false,
     override val keyHolder: ArticleItemKeyHolder = RotatingArticleItemKeyHolder,
+    override val maxLines: Int = 2,
+    override val showOnlyTitle: Boolean = false,
+    override val showFilterMenu: Boolean = false,
+    override val filter: FeedListFilter = emptyFeedListFilter,
     val isArticleOpen: Boolean = false,
 ) : FeedScreenViewState, ArticleScreenViewState

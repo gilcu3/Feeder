@@ -114,7 +114,7 @@
     <string name="showing_all_articles">Mostrar todos los artículos</string>
     <string name="showing_only_unread_articles">Mostrar solo artículos no leídos</string>
     <string name="already_read">Ya leídos</string>
-    <string name="unread">No leídos</string>
+    <string name="unread_adjective">No leídos</string>
     <string name="go_to_feed">Ir a %1$s</string>
     <string name="open_menu">Abrir menú</string>
     <string name="go_back">Ir hacía atrás</string>
@@ -208,4 +208,23 @@
     <string name="failed_to_fetch_full_article_missing_body">No se ha encontrado nada</string>
     <string name="failed_to_fetch_full_article_missing_link">A la fuente le falta el enlace al artículo</string>
     <string name="failed_to_fetch_full_article_not_html">El enlace no es un documento HTML</string>
+    <string name="filter_noun">Filtro</string>
+    <string name="recently_read_adjective">Leído recientemente</string>
+    <string name="read_adjective">Leído</string>
+    <string name="article_list_settings">Lista de artículos</string>
+    <string name="max_lines">Máximo de líneas</string>
+    <string name="saved_adjective">Guardado</string>
+    <string name="show_only_title">Mostrar solo el título</string>
+    <string name="failed_to_download">Fallo al descargar</string>
+    <string name="failed_to_parse_the_page">Fallo al analizar la página</string>
+    <string name="no_feeds_in_the_page">No hay fuentes en la página</string>
+    <string name="failed_to_parse_rss_feed">Fallo al analizar la fuente RSS</string>
+    <string name="content_is_not_html">El contenido no es HTML</string>
+    <string name="http_error">Error HTTP</string>
+    <string name="failed_to_parse_json_feed">Fallo al analizar la fuente JSON</string>
+    <string name="no_body_in_response">Ningún cuerpo en respuesta</string>
+    <string name="unsupported_content_type">Tipo de contenido no soportado</string>
+    <string name="failed_to_parse_full_article">Fallo al analizar el artículo completo</string>
+    <string name="no_url">No hay URL</string>
+    <string name="theme_e_ink">Tinta electrónica</string>
 </resources>
