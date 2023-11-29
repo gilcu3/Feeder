@@ -54,13 +54,15 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
         repository.setSyncOnResume(value)
     }
 
-    fun setSyncOnlyOnWifi(value: Boolean) = applicationCoroutineScope.launch {
-        repository.setSyncOnlyOnWifi(value)
-    }
+    fun setSyncOnlyOnWifi(value: Boolean) =
+        applicationCoroutineScope.launch {
+            repository.setSyncOnlyOnWifi(value)
+        }
 
-    fun setSyncOnlyWhenCharging(value: Boolean) = applicationCoroutineScope.launch {
-        repository.setSyncOnlyWhenCharging(value)
-    }
+    fun setSyncOnlyWhenCharging(value: Boolean) =
+        applicationCoroutineScope.launch {
+            repository.setSyncOnlyWhenCharging(value)
+        }
 
     fun setLoadImageOnlyOnWifi(value: Boolean) {
         repository.setLoadImageOnlyOnWifi(value)
@@ -90,23 +92,29 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
         repository.setLinkOpener(value)
     }
 
-    fun setSyncFrequency(value: SyncFrequency) = applicationCoroutineScope.launch {
-        repository.setSyncFrequency(value)
-    }
+    fun setSyncFrequency(value: SyncFrequency) =
+        applicationCoroutineScope.launch {
+            repository.setSyncFrequency(value)
+        }
 
     fun setFeedItemStyle(value: FeedItemStyle) {
         repository.setFeedItemStyle(value)
     }
 
-    fun addToBlockList(value: String) = applicationCoroutineScope.launch {
-        repository.addBlocklistPattern(value)
-    }
+    fun addToBlockList(value: String) =
+        applicationCoroutineScope.launch {
+            repository.addBlocklistPattern(value)
+        }
 
-    fun removeFromBlockList(value: String) = applicationCoroutineScope.launch {
-        repository.removeBlocklistPattern(value)
-    }
+    fun removeFromBlockList(value: String) =
+        applicationCoroutineScope.launch {
+            repository.removeBlocklistPattern(value)
+        }
 
-    fun toggleNotifications(feedId: Long, value: Boolean) = applicationCoroutineScope.launch {
+    fun toggleNotifications(
+        feedId: Long,
+        value: Boolean,
+    ) = applicationCoroutineScope.launch {
         repository.toggleNotifications(feedId, value)
     }
 
@@ -131,6 +139,14 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
         repository.setShowOnlyTitles(value)
     }
 
+    fun setIsOpenAdjacent(value: Boolean) {
+        repository.setOpenAdjacent(value)
+    }
+
+    fun setShowReadingTime(value: Boolean) {
+        repository.setShowReadingTime(value)
+    }
+
     @OptIn(ExperimentalCoroutinesApi::class)
     private val immutableFeedsSettings =
         repository.feedNotificationSettings
@@ -144,10 +160,11 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
                 }
             }
 
-    private val batteryOptimizationIgnoredFlow: Flow<Boolean> = repository.resumeTime.map {
-        val powerManager: PowerManager? = context.getSystemService()
-        powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
-    }.buffer(1)
+    private val batteryOptimizationIgnoredFlow: Flow<Boolean> =
+        repository.resumeTime.map {
+            val powerManager: PowerManager? = context.getSystemService()
+            powerManager?.isIgnoringBatteryOptimizations(context.packageName) == true
+        }.buffer(1)
 
     private val _viewState = MutableStateFlow(SettingsViewState())
     val viewState: StateFlow<SettingsViewState>
@@ -180,6 +197,8 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
                 repository.isMarkAsReadOnScroll,
                 repository.maxLines,
                 repository.showOnlyTitle,
+                repository.isOpenAdjacent,
+                repository.showReadingTime,
             ) { params: Array<Any> ->
                 @Suppress("UNCHECKED_CAST")
                 SettingsViewState(
@@ -207,6 +226,8 @@ class SettingsViewModel(di: DI) : DIAwareViewModel(di) {
                     isMarkAsReadOnScroll = params[21] as Boolean,
                     maxLines = params[22] as Int,
                     showOnlyTitle = params[23] as Boolean,
+                    isOpenAdjacent = params[24] as Boolean,
+                    showReadingTime = params[25] as Boolean,
                 )
             }.collect {
                 _viewState.value = it
@@ -246,6 +267,8 @@ data class SettingsViewState(
     val isMarkAsReadOnScroll: Boolean = false,
     val maxLines: Int = 2,
     val showOnlyTitle: Boolean = false,
+    val isOpenAdjacent: Boolean = true,
+    val showReadingTime: Boolean = false,
 )
 
 data class UIFeedSettings(

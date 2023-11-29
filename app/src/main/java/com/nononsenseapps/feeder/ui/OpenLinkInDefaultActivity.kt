@@ -1,9 +1,7 @@
 package com.nononsenseapps.feeder.ui
 
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
-import android.provider.Browser.EXTRA_CREATE_NEW_TAB
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.lifecycleScope
@@ -12,6 +10,7 @@ import com.nononsenseapps.feeder.base.DIAwareComponentActivity
 import com.nononsenseapps.feeder.db.COL_LINK
 import com.nononsenseapps.feeder.db.room.ID_UNSET
 import com.nononsenseapps.feeder.model.cancelNotification
+import com.nononsenseapps.feeder.util.ActivityLauncher
 import com.nononsenseapps.feeder.util.DEEP_LINK_HOST
 import kotlinx.coroutines.launch
 import org.kodein.di.instance
@@ -24,6 +23,7 @@ import org.kodein.di.instance
  */
 class OpenLinkInDefaultActivity : DIAwareComponentActivity() {
     private val viewModel: OpenLinkInDefaultActivityViewModel by instance(arg = this)
+    private val activityLauncher: ActivityLauncher by instance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,18 +34,21 @@ class OpenLinkInDefaultActivity : DIAwareComponentActivity() {
             val uri = intent.data
 
             if (uri?.host == DEEP_LINK_HOST && uri.lastPathSegment == "feed") {
-                val feedItemIds = intent.getLongArrayExtra(EXTRA_FEEDITEMS_TO_MARK_AS_NOTIFIED)
-                    ?: longArrayOf()
+                val feedItemIds =
+                    intent.getLongArrayExtra(EXTRA_FEEDITEMS_TO_MARK_AS_NOTIFIED)
+                        ?: longArrayOf()
 
                 viewModel.markAsNotifiedInBackground(feedItemIds.toList())
 
-                startActivity(
-                    Intent(
-                        Intent.ACTION_VIEW,
-                        uri,
-                        this,
-                        MainActivity::class.java,
-                    ),
+                activityLauncher.startActivity(
+                    openAdjacentIfSuitable = false,
+                    intent =
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            uri,
+                            this,
+                            MainActivity::class.java,
+                        ),
                 )
             } else {
                 handleNotificationActions(intent)
@@ -67,15 +70,14 @@ class OpenLinkInDefaultActivity : DIAwareComponentActivity() {
 
         if (link != null) {
             try {
-                startActivity(
-                    Intent(Intent.ACTION_VIEW, Uri.parse(link)).also {
-                        intent.putExtra(EXTRA_CREATE_NEW_TAB, true)
-                    },
+                activityLauncher.openLinkInBrowser(
+                    link,
+                    openAdjacentIfSuitable = false,
                 )
             } catch (e: Throwable) {
                 e.printStackTrace()
                 Toast.makeText(this, R.string.no_activity_for_link, Toast.LENGTH_SHORT).show()
-                Log.e("FeederOpenInWebBrowser", "Failed to start browser", e)
+                Log.e("FEEDEROpenInWebBrowser", "Failed to start browser", e)
             }
         }
     }

@@ -28,7 +28,7 @@
     <string name="sync">Actualiser</string>
     <string name="export_feeds_to_opml">Exporter les flux vers un fichier OPML</string>
     <string name="import_feeds_from_opml">Importer des flux depuis un fichier OPML</string>
-    <string name="view_debug_log">Voir les journaux de débogage</string>
+    <string name="view_debug_log">Voir le journal de débogage</string>
     <string name="new_based_on_this">Nouveau flux basé sur ceci</string>
     <string name="indicator_for_mark_as_read">Indicateur pour marquer comme lu</string>
     <string name="share">Partager</string>
@@ -55,7 +55,7 @@
     <string name="battery_optimization_enabled">Activé</string>
     <string name="battery_optimization_disabled">Désactivé</string>
     <string name="battery_optimization">Optimisation de la batterie</string>
-    <string name="toggle_tag_expansion">Basculer l’expansion des étiquettes</string>
+    <string name="toggle_tag_expansion">Ne pas regrouper les étiquettes</string>
     <string name="discovered_feeds_list">Liste des flux découverts</string>
     <string name="mark_items_below_as_read">Marquer lus les articles en dessous</string>
     <string name="mark_items_above_as_read">Marquer lus les articles au dessus</string>
@@ -121,8 +121,8 @@
     <string name="go_to_feed">Aller à %1$s</string>
     <string name="open_menu">Ouvrir le menu</string>
     <string name="go_back">Retour</string>
-    <string name="contracted_tag">Étiquette fermée</string>
-    <string name="expanded_tag">Étiquette ouverte</string>
+    <string name="contracted_tag">Étiquette regroupée</string>
+    <string name="expanded_tag">Étiquette dégroupée</string>
     <string name="stop_reading">Arrêter la lecture</string>
     <string name="open_enclosed_media_file">Ouvrir %1$s</string>
     <string name="feed_item_style_super_compact">Super compact</string>
@@ -227,4 +227,6 @@
     <string name="failed_to_parse_full_article">Échec de lecture de l\'intégralité de l\'article</string>
     <string name="no_url">URL manquante</string>
     <string name="theme_e_ink">Encre électronique</string>
+    <string name="add_anyway">Ajouter quand même</string>
+    <string name="open_browser_in_split_screen">Ouvrir le navigateur dans un écran partagé</string>
 </resources>

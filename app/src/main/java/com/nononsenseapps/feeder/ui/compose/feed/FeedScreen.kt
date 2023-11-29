@@ -137,13 +137,10 @@ import com.nononsenseapps.feeder.ui.compose.utils.isCompactDevice
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemMostlyVisible
 import com.nononsenseapps.feeder.ui.compose.utils.rememberIsItemVisible
+import com.nononsenseapps.feeder.util.ActivityLauncher
 import com.nononsenseapps.feeder.util.ToastMaker
 import com.nononsenseapps.feeder.util.emailBugReportIntent
 import com.nononsenseapps.feeder.util.logDebug
-import com.nononsenseapps.feeder.util.openLinkInBrowser
-import com.nononsenseapps.feeder.util.openLinkInCustomTab
-import java.time.Instant
-import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -151,6 +148,8 @@ import kotlinx.coroutines.launch
 import org.kodein.di.compose.LocalDI
 import org.kodein.di.compose.instance
 import org.kodein.di.instance
+import java.time.Instant
+import java.time.LocalDateTime
 
 private const val LOG_TAG = "FEEDER_FEEDSCREEN"
 
@@ -169,38 +168,42 @@ fun FeedScreen(
     val pagedFeedItems = viewModel.currentFeedListItems.collectAsLazyPagingItems()
 
     val di = LocalDI.current
-    val opmlExporter = rememberLauncherForActivityResult(
-        ActivityResultContracts.CreateDocument("text/x-opml"),
-    ) { uri ->
-        if (uri != null) {
-            val applicationCoroutineScope: ApplicationCoroutineScope by di.instance()
-            applicationCoroutineScope.launch {
-                exportOpml(di, uri)
+    val opmlExporter =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.CreateDocument("text/x-opml"),
+        ) { uri ->
+            if (uri != null) {
+                val applicationCoroutineScope: ApplicationCoroutineScope by di.instance()
+                applicationCoroutineScope.launch {
+                    exportOpml(di, uri)
+                }
             }
         }
-    }
-    val opmlImporter = rememberLauncherForActivityResult(
-        ActivityResultContracts.OpenDocument(),
-    ) { uri ->
-        if (uri != null) {
-            val applicationCoroutineScope: ApplicationCoroutineScope by di.instance()
-            applicationCoroutineScope.launch {
-                importOpml(di, uri)
+    val opmlImporter =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.OpenDocument(),
+        ) { uri ->
+            if (uri != null) {
+                val applicationCoroutineScope: ApplicationCoroutineScope by di.instance()
+                applicationCoroutineScope.launch {
+                    importOpml(di, uri)
+                }
             }
         }
-    }
 
-    val context = LocalContext.current
+    val activityLauncher: ActivityLauncher by LocalDI.current.instance()
 
     // Each feed gets its own scroll state. Persists across device rotations, but is cleared when
     // switching feeds
-    val feedListState = key(viewState.currentFeedOrTag) {
-        pagedFeedItems.rememberLazyListState()
-    }
+    val feedListState =
+        key(viewState.currentFeedOrTag) {
+            pagedFeedItems.rememberLazyListState()
+        }
 
-    val feedGridState = key(viewState.currentFeedOrTag) {
-        rememberLazyStaggeredGridState()
-    }
+    val feedGridState =
+        key(viewState.currentFeedOrTag) {
+            rememberLazyStaggeredGridState()
+        }
 
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
 
@@ -238,10 +241,11 @@ fun FeedScreen(
         },
         focusRequester = focusNavDrawer,
         drawerState = drawerState,
-        navDrawerListState = when (viewState.drawerItemsWithUnreadCounts.size) {
-            0 -> workaroundNavDrawerListState
-            else -> navDrawerListState
-        },
+        navDrawerListState =
+            when (viewState.drawerItemsWithUnreadCounts.size) {
+                0 -> workaroundNavDrawerListState
+                else -> navDrawerListState
+            },
     ) {
         FeedScreen(
             viewState = viewState,
@@ -293,7 +297,10 @@ fun FeedScreen(
                 SettingsDestination.navigate(navController)
             },
             onSendFeedback = {
-                context.startActivity(emailBugReportIntent())
+                activityLauncher.startActivity(
+                    openAdjacentIfSuitable = true,
+                    intent = emailBugReportIntent(),
+                )
             },
             onImport = {
                 try {
@@ -365,10 +372,10 @@ fun FeedScreen(
                 viewModel.openArticle(
                     itemId = itemId,
                     openInBrowser = { articleLink ->
-                        openLinkInBrowser(context, articleLink)
+                        activityLauncher.openLinkInBrowser(articleLink)
                     },
                     openInCustomTab = { articleLink ->
-                        openLinkInCustomTab(context, articleLink, toolbarColor)
+                        activityLauncher.openLinkInCustomTab(articleLink, toolbarColor)
                     },
                     navigateToArticle = {
                         ArticleDestination.navigate(navController, itemId)
@@ -467,9 +474,10 @@ fun FeedScreen(
                         DropdownMenu(
                             expanded = viewState.showFilterMenu,
                             onDismissRequest = { onShowFilterMenu(false) },
-                            modifier = Modifier.onKeyEventLikeEscape {
-                                onShowFilterMenu(false)
-                            },
+                            modifier =
+                                Modifier.onKeyEventLikeEscape {
+                                    onShowFilterMenu(false)
+                                },
                         ) {
                             DropdownMenuItem(
                                 enabled = false,
@@ -486,14 +494,16 @@ fun FeedScreen(
                                 text = {
                                     Text(stringResource(id = R.string.unread_adjective))
                                 },
-                                modifier = Modifier
-                                    .safeSemantics {
-                                        stateDescription = when (viewState.filter.unread) {
-                                            true -> context.getString(androidx.compose.ui.R.string.selected)
-                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
-                                        }
-                                        role = Role.Checkbox
-                                    },
+                                modifier =
+                                    Modifier
+                                        .safeSemantics {
+                                            stateDescription =
+                                                when (viewState.filter.unread) {
+                                                    true -> context.getString(androidx.compose.ui.R.string.selected)
+                                                    else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                                }
+                                            role = Role.Checkbox
+                                        },
                             )
                             DropdownMenuItem(
                                 onClick = {
@@ -511,14 +521,16 @@ fun FeedScreen(
                                 text = {
                                     Text(stringResource(id = R.string.saved_adjective))
                                 },
-                                modifier = Modifier
-                                    .safeSemantics {
-                                        stateDescription = when (viewState.filter.saved) {
-                                            true -> context.getString(androidx.compose.ui.R.string.selected)
-                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
-                                        }
-                                        role = Role.Checkbox
-                                    },
+                                modifier =
+                                    Modifier
+                                        .safeSemantics {
+                                            stateDescription =
+                                                when (viewState.filter.saved) {
+                                                    true -> context.getString(androidx.compose.ui.R.string.selected)
+                                                    else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                                }
+                                            role = Role.Checkbox
+                                        },
                             )
                             DropdownMenuItem(
                                 onClick = {
@@ -536,14 +548,16 @@ fun FeedScreen(
                                 text = {
                                     Text(stringResource(id = R.string.recently_read_adjective))
                                 },
-                                modifier = Modifier
-                                    .safeSemantics {
-                                        stateDescription = when (viewState.filter.recentlyRead) {
-                                            true -> context.getString(androidx.compose.ui.R.string.selected)
-                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
-                                        }
-                                        role = Role.Checkbox
-                                    },
+                                modifier =
+                                    Modifier
+                                        .safeSemantics {
+                                            stateDescription =
+                                                when (viewState.filter.recentlyRead) {
+                                                    true -> context.getString(androidx.compose.ui.R.string.selected)
+                                                    else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                                }
+                                            role = Role.Checkbox
+                                        },
                             )
                             DropdownMenuItem(
                                 onClick = {
@@ -561,14 +575,16 @@ fun FeedScreen(
                                 text = {
                                     Text(stringResource(id = R.string.read_adjective))
                                 },
-                                modifier = Modifier
-                                    .safeSemantics {
-                                        stateDescription = when (viewState.filter.read) {
-                                            true -> context.getString(androidx.compose.ui.R.string.selected)
-                                            else -> context.getString(androidx.compose.ui.R.string.not_selected)
-                                        }
-                                        role = Role.Checkbox
-                                    },
+                                modifier =
+                                    Modifier
+                                        .safeSemantics {
+                                            stateDescription =
+                                                when (viewState.filter.read) {
+                                                    true -> context.getString(androidx.compose.ui.R.string.selected)
+                                                    else -> context.getString(androidx.compose.ui.R.string.not_selected)
+                                                }
+                                            role = Role.Checkbox
+                                        },
                             )
                         }
                     }
@@ -589,9 +605,10 @@ fun FeedScreen(
                     DropdownMenu(
                         expanded = viewState.showToolbarMenu,
                         onDismissRequest = { onShowToolbarMenu(false) },
-                        modifier = Modifier.onKeyEventLikeEscape {
-                            onShowToolbarMenu(false)
-                        },
+                        modifier =
+                            Modifier.onKeyEventLikeEscape {
+                                onShowToolbarMenu(false)
+                            },
                     ) {
                         DropdownMenuItem(
                             onClick = {
@@ -742,57 +759,60 @@ fun FeedScreen(
             }
         },
     ) { innerModifier ->
-        val screenType = when (isCompactDevice()) {
-            true -> FeedScreenType.FeedList
-            false -> FeedScreenType.FeedGrid
-        }
+        val screenType =
+            when (isCompactDevice()) {
+                true -> FeedScreenType.FeedList
+                false -> FeedScreenType.FeedGrid
+            }
 
         when (screenType) {
-            FeedScreenType.FeedGrid -> FeedGridContent(
-                viewState = viewState,
-                onOpenNavDrawer = {
-                    coroutineScope.launch {
-                        if (drawerState.isOpen) {
-                            drawerState.close()
-                        } else {
-                            drawerState.open()
+            FeedScreenType.FeedGrid ->
+                FeedGridContent(
+                    viewState = viewState,
+                    onOpenNavDrawer = {
+                        coroutineScope.launch {
+                            if (drawerState.isOpen) {
+                                drawerState.close()
+                            } else {
+                                drawerState.open()
+                            }
                         }
-                    }
-                },
-                onAddFeed = onAddFeed,
-                markAsUnread = markAsUnread,
-                markAsReadOnSwipe = markAsReadOnSwipe,
-                markBeforeAsRead = markBeforeAsRead,
-                markAfterAsRead = markAfterAsRead,
-                onItemClick = onOpenFeedItem,
-                onSetBookmarked = onSetBookmarked,
-                gridState = feedGridState,
-                pagedFeedItems = pagedFeedItems,
-                modifier = innerModifier,
-            ).also { logDebug(LOG_TAG, "Showing GRID") }
+                    },
+                    onAddFeed = onAddFeed,
+                    markAsUnread = markAsUnread,
+                    markAsReadOnSwipe = markAsReadOnSwipe,
+                    markBeforeAsRead = markBeforeAsRead,
+                    markAfterAsRead = markAfterAsRead,
+                    onItemClick = onOpenFeedItem,
+                    onSetBookmarked = onSetBookmarked,
+                    gridState = feedGridState,
+                    pagedFeedItems = pagedFeedItems,
+                    modifier = innerModifier,
+                ).also { logDebug(LOG_TAG, "Showing GRID") }
 
-            FeedScreenType.FeedList -> FeedListContent(
-                viewState = viewState,
-                onOpenNavDrawer = {
-                    coroutineScope.launch {
-                        if (drawerState.isOpen) {
-                            drawerState.close()
-                        } else {
-                            drawerState.open()
+            FeedScreenType.FeedList ->
+                FeedListContent(
+                    viewState = viewState,
+                    onOpenNavDrawer = {
+                        coroutineScope.launch {
+                            if (drawerState.isOpen) {
+                                drawerState.close()
+                            } else {
+                                drawerState.open()
+                            }
                         }
-                    }
-                },
-                onAddFeed = onAddFeed,
-                markAsUnread = markAsUnread,
-                markAsReadOnSwipe = markAsReadOnSwipe,
-                markBeforeAsRead = markBeforeAsRead,
-                markAfterAsRead = markAfterAsRead,
-                onItemClick = onOpenFeedItem,
-                onSetBookmarked = onSetBookmarked,
-                listState = feedListState,
-                pagedFeedItems = pagedFeedItems,
-                modifier = innerModifier,
-            ).also { logDebug(LOG_TAG, "Showing LIST") }
+                    },
+                    onAddFeed = onAddFeed,
+                    markAsUnread = markAsUnread,
+                    markAsReadOnSwipe = markAsReadOnSwipe,
+                    markBeforeAsRead = markBeforeAsRead,
+                    markAfterAsRead = markAfterAsRead,
+                    onItemClick = onOpenFeedItem,
+                    onSetBookmarked = onSetBookmarked,
+                    listState = feedListState,
+                    pagedFeedItems = pagedFeedItems,
+                    modifier = innerModifier,
+                ).also { logDebug(LOG_TAG, "Showing LIST") }
         }
     }
 }
@@ -865,9 +885,10 @@ fun FeedScreen(
         PlainTooltipBox(tooltip = { Text(stringResource(R.string.mark_all_as_read)) }) {
             FloatingActionButton(
                 onClick = onMarkAllAsRead,
-                modifier = Modifier
-                    .navigationBarsPadding()
-                    .tooltipAnchor(),
+                modifier =
+                    Modifier
+                        .navigationBarsPadding()
+                        .tooltipAnchor(),
             ) {
                 Icon(
                     Icons.Default.DoneAll,
@@ -881,32 +902,35 @@ fun FeedScreen(
         bottomBarVisibleState.targetState = viewState.isBottomBarVisible
     }
 
-    val topAppBarState = key(viewState.currentFeedOrTag) {
-        rememberTopAppBarState()
-    }
+    val topAppBarState =
+        key(viewState.currentFeedOrTag) {
+            rememberTopAppBarState()
+        }
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(topAppBarState)
 
     SetStatusBarColorToMatchScrollableTopAppBar(scrollBehavior)
 
-    val pullRefreshState = rememberPullRefreshState(
-        refreshing = isRefreshing,
-        onRefresh = {
-            manuallyTriggeredRefresh = true
-            syncIndicatorMax = Instant.now().plusSeconds(10)
-            onRefreshVisible()
-        },
-    )
+    val pullRefreshState =
+        rememberPullRefreshState(
+            refreshing = isRefreshing,
+            onRefresh = {
+                manuallyTriggeredRefresh = true
+                syncIndicatorMax = Instant.now().plusSeconds(10)
+                onRefreshVisible()
+            },
+        )
 
     Scaffold(
         topBar = {
             SensibleTopAppBar(
                 scrollBehavior = scrollBehavior,
-                title = when (viewState.feedScreenTitle.type) {
-                    FeedType.FEED -> viewState.feedScreenTitle.title
-                    FeedType.TAG -> viewState.feedScreenTitle.title
-                    FeedType.SAVED_ARTICLES -> stringResource(id = R.string.saved_articles)
-                    FeedType.ALL_FEEDS -> stringResource(id = R.string.all_feeds)
-                } ?: "",
+                title =
+                    when (viewState.feedScreenTitle.type) {
+                        FeedType.FEED -> viewState.feedScreenTitle.title
+                        FeedType.TAG -> viewState.feedScreenTitle.title
+                        FeedType.SAVED_ARTICLES -> stringResource(id = R.string.saved_articles)
+                        FeedType.ALL_FEEDS -> stringResource(id = R.string.all_feeds)
+                    } ?: "",
                 navigationIcon = {
                     IconButton(
                         onClick = onOpenNavDrawer,
@@ -929,10 +953,11 @@ fun FeedScreen(
                 onStop = ttsOnStop,
                 onSkipNext = ttsOnSkipNext,
                 languages = ImmutableHolder(viewState.ttsLanguages),
-                floatingActionButton = when (viewState.showFab) {
-                    true -> floatingActionButton
-                    false -> null
-                },
+                floatingActionButton =
+                    when (viewState.showFab) {
+                        true -> floatingActionButton
+                        false -> null
+                    },
                 onSelectLanguage = ttsOnSelectLanguage,
             )
         },
@@ -947,16 +972,18 @@ fun FeedScreen(
                 }
             }
         },
-        modifier = modifier
-            // The order is important! PullToRefresh MUST come first
-            .pullRefresh(state = pullRefreshState)
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)),
+        modifier =
+            modifier
+                // The order is important! PullToRefresh MUST come first
+                .pullRefresh(state = pullRefreshState)
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)),
         contentWindowInsets = WindowInsets.statusBars,
     ) { padding ->
         Box(
-            modifier = Modifier
-                .padding(padding),
+            modifier =
+                Modifier
+                    .padding(padding),
         ) {
             content(
                 Modifier,
@@ -965,18 +992,20 @@ fun FeedScreen(
             PullRefreshIndicator(
                 isRefreshing,
                 pullRefreshState,
-                modifier = Modifier
-                    .align(Alignment.TopCenter),
+                modifier =
+                    Modifier
+                        .align(Alignment.TopCenter),
             )
         }
 
         if (viewState.showDeleteDialog) {
             DeleteFeedDialog(
-                feeds = ImmutableHolder(
-                    viewState.visibleFeeds.map {
-                        DeletableFeed(it.id, it.displayTitle)
-                    },
-                ),
+                feeds =
+                    ImmutableHolder(
+                        viewState.visibleFeeds.map {
+                            DeletableFeed(it.id, it.displayTitle)
+                        },
+                    ),
                 onDismiss = onDismissDeleteDialog,
                 onDelete = onDelete,
             )
@@ -984,14 +1013,15 @@ fun FeedScreen(
 
         if (viewState.showEditDialog) {
             EditFeedDialog(
-                feeds = ImmutableHolder(
-                    viewState.visibleFeeds.map {
-                        DeletableFeed(
-                            it.id,
-                            it.displayTitle,
-                        )
-                    },
-                ),
+                feeds =
+                    ImmutableHolder(
+                        viewState.visibleFeeds.map {
+                            DeletableFeed(
+                                it.id,
+                                it.displayTitle,
+                            )
+                        },
+                    ),
                 onDismiss = onDismissEditDialog,
                 onEdit = onEditFeed,
             )
@@ -1015,7 +1045,7 @@ fun FeedListContent(
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val activityLauncher: ActivityLauncher by LocalDI.current.instance()
 
     Box(modifier = modifier) {
         AnimatedVisibility(
@@ -1026,9 +1056,10 @@ fun FeedListContent(
             // Keeping the Box behind so the scrollability doesn't override clickable
             // Separate box because scrollable will ignore max size.
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
             )
             NothingToRead(
                 modifier = Modifier,
@@ -1037,38 +1068,41 @@ fun FeedListContent(
             )
         }
 
-        val arrangement = when (viewState.feedItemStyle) {
-            FeedItemStyle.CARD -> Arrangement.spacedBy(LocalDimens.current.margin)
-            FeedItemStyle.COMPACT -> Arrangement.spacedBy(0.dp)
-            FeedItemStyle.SUPER_COMPACT -> Arrangement.spacedBy(0.dp)
-        }
+        val arrangement =
+            when (viewState.feedItemStyle) {
+                FeedItemStyle.CARD -> Arrangement.spacedBy(LocalDimens.current.margin)
+                FeedItemStyle.COMPACT -> Arrangement.spacedBy(0.dp)
+                FeedItemStyle.SUPER_COMPACT -> Arrangement.spacedBy(0.dp)
+            }
 
         AnimatedVisibility(
             enter = fadeIn(),
             exit = fadeOut(),
             visible = viewState.haveVisibleFeedItems,
         ) {
-            val screenHeightPx = with(LocalDensity.current) {
-                LocalConfiguration.current.screenHeightDp.dp.toPx().toInt()
-            }
+            val screenHeightPx =
+                with(LocalDensity.current) {
+                    LocalConfiguration.current.screenHeightDp.dp.toPx().toInt()
+                }
             LazyColumn(
                 state = listState,
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = arrangement,
-                contentPadding = if (viewState.isBottomBarVisible) {
-                    PaddingValues(0.dp)
-                } else {
-                    WindowInsets.navigationBars.only(
-                        WindowInsetsSides.Bottom,
-                    ).run {
-                        when (viewState.feedItemStyle) {
-                            FeedItemStyle.CARD -> addMargin(horizontal = LocalDimens.current.margin)
-                            // No margin since dividers
-                            FeedItemStyle.COMPACT, FeedItemStyle.SUPER_COMPACT -> this
+                contentPadding =
+                    if (viewState.isBottomBarVisible) {
+                        PaddingValues(0.dp)
+                    } else {
+                        WindowInsets.navigationBars.only(
+                            WindowInsetsSides.Bottom,
+                        ).run {
+                            when (viewState.feedItemStyle) {
+                                FeedItemStyle.CARD -> addMargin(horizontal = LocalDimens.current.margin)
+                                // No margin since dividers
+                                FeedItemStyle.COMPACT, FeedItemStyle.SUPER_COMPACT -> this
+                            }
                         }
-                    }
-                        .asPaddingValues()
-                },
+                            .asPaddingValues()
+                    },
                 modifier = Modifier.fillMaxSize(),
             ) {
                 /*
@@ -1087,8 +1121,9 @@ fun FeedListContent(
                         pagedFeedItems.itemSnapshotList.items[itemIndex].contentType(viewState.feedItemStyle)
                     },
                 ) { itemIndex ->
-                    val previewItem = pagedFeedItems[itemIndex]
-                        ?: return@items
+                    val previewItem =
+                        pagedFeedItems[itemIndex]
+                            ?: return@items
 
                     if (viewState.markAsReadOnScroll && previewItem.unread) {
                         val visible: Boolean by listState.rememberIsItemVisible(
@@ -1124,6 +1159,7 @@ fun FeedListContent(
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
                         maxLines = viewState.maxLines,
                         showOnlyTitle = viewState.showOnlyTitle,
+                        showReadingTime = viewState.showReadingTime,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)
                             if (viewState.filter.onlyUnread) {
@@ -1139,17 +1175,21 @@ fun FeedListContent(
                             onSetBookmarked(previewItem.id, !previewItem.bookmarked)
                         },
                         onShareItem = {
-                            val intent = Intent.createChooser(
-                                Intent(Intent.ACTION_SEND).apply {
-                                    if (previewItem.link != null) {
-                                        putExtra(Intent.EXTRA_TEXT, previewItem.link)
-                                    }
-                                    putExtra(Intent.EXTRA_TITLE, previewItem.title)
-                                    type = "text/plain"
-                                },
-                                null,
+                            val intent =
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        if (previewItem.link != null) {
+                                            putExtra(Intent.EXTRA_TEXT, previewItem.link)
+                                        }
+                                        putExtra(Intent.EXTRA_TITLE, previewItem.title)
+                                        type = "text/plain"
+                                    },
+                                    null,
+                                )
+                            activityLauncher.startActivity(
+                                openAdjacentIfSuitable = false,
+                                intent = intent,
                             )
-                            context.startActivity(intent)
                         },
                     ) {
                         onItemClick(previewItem.id)
@@ -1158,9 +1198,10 @@ fun FeedListContent(
                     if (viewState.feedItemStyle != FeedItemStyle.CARD) {
                         if (itemIndex < pagedFeedItems.itemCount - 1) {
                             Divider(
-                                modifier = Modifier
-                                    .height(1.dp)
-                                    .fillMaxWidth(),
+                                modifier =
+                                    Modifier
+                                        .height(1.dp)
+                                        .fillMaxWidth(),
                             )
                         }
                     }
@@ -1171,9 +1212,10 @@ fun FeedListContent(
                 if (viewState.showFab && !viewState.isBottomBarVisible) {
                     item {
                         Spacer(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height((56 + 16).dp),
+                            modifier =
+                                Modifier
+                                    .fillMaxWidth()
+                                    .height((56 + 16).dp),
                         )
                     }
                 }
@@ -1199,11 +1241,12 @@ fun FeedGridContent(
     modifier: Modifier = Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
-    val context = LocalContext.current
+    val activityLauncher: ActivityLauncher by LocalDI.current.instance()
 
-    val screenHeightPx = with(LocalDensity.current) {
-        LocalConfiguration.current.screenHeightDp.dp.toPx().toInt()
-    }
+    val screenHeightPx =
+        with(LocalDensity.current) {
+            LocalConfiguration.current.screenHeightDp.dp.toPx().toInt()
+        }
 
     Box(modifier = modifier) {
         AnimatedVisibility(
@@ -1214,9 +1257,10 @@ fun FeedGridContent(
             // Keeping the Box behind so the scrollability doesn't override clickable
             // Separate box because scrollable will ignore max size.
             Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState()),
+                modifier =
+                    Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
             )
             NothingToRead(
                 modifier = Modifier,
@@ -1226,15 +1270,17 @@ fun FeedGridContent(
         }
 
         // Grid has hard-coded card
-        val feedItemStyle = remember {
-            FeedItemStyle.CARD
-        }
+        val feedItemStyle =
+            remember {
+                FeedItemStyle.CARD
+            }
 
-        val arrangement = when (feedItemStyle) {
-            FeedItemStyle.CARD -> Arrangement.spacedBy(LocalDimens.current.gutter)
-            FeedItemStyle.COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
-            FeedItemStyle.SUPER_COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
-        }
+        val arrangement =
+            when (feedItemStyle) {
+                FeedItemStyle.CARD -> Arrangement.spacedBy(LocalDimens.current.gutter)
+                FeedItemStyle.COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
+                FeedItemStyle.SUPER_COMPACT -> Arrangement.spacedBy(LocalDimens.current.gutter)
+            }
 
         AnimatedVisibility(
             enter = fadeIn(),
@@ -1244,14 +1290,15 @@ fun FeedGridContent(
             LazyVerticalStaggeredGrid(
                 state = gridState,
                 columns = StaggeredGridCells.Fixed(LocalDimens.current.feedScreenColumns),
-                contentPadding = if (viewState.isBottomBarVisible) {
-                    PaddingValues(0.dp)
-                } else {
-                    WindowInsets.navigationBars.only(
-                        WindowInsetsSides.Bottom,
-                    ).addMargin(LocalDimens.current.margin)
-                        .asPaddingValues()
-                },
+                contentPadding =
+                    if (viewState.isBottomBarVisible) {
+                        PaddingValues(0.dp)
+                    } else {
+                        WindowInsets.navigationBars.only(
+                            WindowInsetsSides.Bottom,
+                        ).addMargin(LocalDimens.current.margin)
+                            .asPaddingValues()
+                    },
                 verticalItemSpacing = LocalDimens.current.gutter,
                 horizontalArrangement = arrangement,
                 modifier = Modifier.fillMaxSize(),
@@ -1265,8 +1312,9 @@ fun FeedGridContent(
                         pagedFeedItems.itemSnapshotList.items[itemIndex].contentType(feedItemStyle)
                     },
                 ) { itemIndex ->
-                    val previewItem = pagedFeedItems[itemIndex]
-                        ?: return@items
+                    val previewItem =
+                        pagedFeedItems[itemIndex]
+                            ?: return@items
 
                     // Very important that items don't change size or disappear when scrolling
                     if (viewState.markAsReadOnScroll && previewItem.unread) {
@@ -1303,6 +1351,7 @@ fun FeedGridContent(
                         bookmarkIndicator = !viewState.currentFeedOrTag.isSavedArticles,
                         maxLines = viewState.maxLines,
                         showOnlyTitle = viewState.showOnlyTitle,
+                        showReadingTime = viewState.showReadingTime,
                         onMarkAboveAsRead = {
                             markBeforeAsRead(previewItem.cursor)
                             if (viewState.filter.onlyUnread) {
@@ -1318,17 +1367,21 @@ fun FeedGridContent(
                             onSetBookmarked(previewItem.id, !previewItem.bookmarked)
                         },
                         onShareItem = {
-                            val intent = Intent.createChooser(
-                                Intent(Intent.ACTION_SEND).apply {
-                                    if (previewItem.link != null) {
-                                        putExtra(Intent.EXTRA_TEXT, previewItem.link)
-                                    }
-                                    putExtra(Intent.EXTRA_TITLE, previewItem.title)
-                                    type = "text/plain"
-                                },
-                                null,
+                            val intent =
+                                Intent.createChooser(
+                                    Intent(Intent.ACTION_SEND).apply {
+                                        if (previewItem.link != null) {
+                                            putExtra(Intent.EXTRA_TEXT, previewItem.link)
+                                        }
+                                        putExtra(Intent.EXTRA_TITLE, previewItem.title)
+                                        type = "text/plain"
+                                    },
+                                    null,
+                                )
+                            activityLauncher.startActivity(
+                                openAdjacentIfSuitable = false,
+                                intent = intent,
                             )
-                            context.startActivity(intent)
                         },
                     ) {
                         onItemClick(previewItem.id)

@@ -56,9 +56,9 @@ import com.nononsenseapps.feeder.ui.compose.theme.SwipingItemToReadColor
 import com.nononsenseapps.feeder.ui.compose.theme.SwipingItemToUnreadColor
 import com.nononsenseapps.feeder.ui.compose.utils.isCompactLandscape
 import com.nononsenseapps.feeder.util.logDebug
+import kotlinx.coroutines.launch
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
-import kotlinx.coroutines.launch
 
 private const val LOG_TAG = "FEEDER_SWIPEITEM"
 
@@ -81,6 +81,7 @@ fun SwipeableFeedItemPreview(
     bookmarkIndicator: Boolean,
     maxLines: Int,
     showOnlyTitle: Boolean,
+    showReadingTime: Boolean,
     onMarkAboveAsRead: () -> Unit,
     onMarkBelowAsRead: () -> Unit,
     onToggleBookmarked: () -> Unit,
@@ -96,11 +97,12 @@ fun SwipeableFeedItemPreview(
     }
 
     val color by animateColorAsState(
-        targetValue = when {
-            swipeableState.targetValue == FeedItemSwipeState.NONE -> Color.Transparent
-            item.unread || filter.onlyUnread -> SwipingItemToReadColor
-            else -> SwipingItemToUnreadColor
-        },
+        targetValue =
+            when {
+                swipeableState.targetValue == FeedItemSwipeState.NONE -> Color.Transparent
+                item.unread || filter.onlyUnread -> SwipingItemToReadColor
+                else -> SwipingItemToUnreadColor
+            },
         label = "swipeBackground",
     )
 
@@ -154,56 +156,60 @@ fun SwipeableFeedItemPreview(
     val dimens = LocalDimens.current
 
     BoxWithConstraints(
-        modifier = modifier
-            .width(dimens.maxContentWidth)
-            .combinedClickable(
-                onLongClick = {
-                    dropDownMenuExpanded = true
-                },
-                onClick = onItemClick,
-            )
-            .safeSemantics {
-                stateDescription = readStatusLabel
-                customActions = listOf(
-                    CustomAccessibilityAction(toggleReadStatusLabel) {
-                        coroutineScope.launch {
-                            onSwipe(item.unread)
-                        }
-                        true
+        modifier =
+            modifier
+                .width(dimens.maxContentWidth)
+                .combinedClickable(
+                    onLongClick = {
+                        dropDownMenuExpanded = true
                     },
-                    CustomAccessibilityAction(
-                        when (item.bookmarked) {
-                            true -> unSaveArticleLabel
-                            false -> saveArticleLabel
-                        },
-                    ) {
-                        onToggleBookmarked()
-                        true
-                    },
-                    CustomAccessibilityAction(markAboveAsReadLabel) {
-                        onMarkAboveAsRead()
-                        true
-                    },
-                    CustomAccessibilityAction(markBelowAsReadLabel) {
-                        onMarkBelowAsRead()
-                        true
-                    },
-                    CustomAccessibilityAction(shareLabel) {
-                        onShareItem()
-                        true
-                    },
+                    onClick = onItemClick,
                 )
-            },
+                .safeSemantics {
+                    stateDescription = readStatusLabel
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction(toggleReadStatusLabel) {
+                                coroutineScope.launch {
+                                    onSwipe(item.unread)
+                                }
+                                true
+                            },
+                            CustomAccessibilityAction(
+                                when (item.bookmarked) {
+                                    true -> unSaveArticleLabel
+                                    false -> saveArticleLabel
+                                },
+                            ) {
+                                onToggleBookmarked()
+                                true
+                            },
+                            CustomAccessibilityAction(markAboveAsReadLabel) {
+                                onMarkAboveAsRead()
+                                true
+                            },
+                            CustomAccessibilityAction(markBelowAsReadLabel) {
+                                onMarkBelowAsRead()
+                                true
+                            },
+                            CustomAccessibilityAction(shareLabel) {
+                                onShareItem()
+                                true
+                            },
+                        )
+                },
     ) {
-        val maxWidthPx = with(LocalDensity.current) {
-            maxWidth.toPx()
-        }
+        val maxWidthPx =
+            with(LocalDensity.current) {
+                maxWidth.toPx()
+            }
         Box(
             contentAlignment = swipeIconAlignment,
-            modifier = Modifier
-                .matchParentSize()
-                .background(color)
-                .padding(horizontal = 24.dp),
+            modifier =
+                Modifier
+                    .matchParentSize()
+                    .background(color)
+                    .padding(horizontal = 24.dp),
         ) {
             AnimatedVisibility(
                 visible = swipeableState.targetValue != FeedItemSwipeState.NONE,
@@ -248,9 +254,11 @@ fun SwipeableFeedItemPreview(
                     bookmarkIndicator = bookmarkIndicator,
                     maxLines = maxLines,
                     showOnlyTitle = showOnlyTitle,
-                    modifier = Modifier
-                        .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
-                        .graphicsLayer(alpha = itemAlpha),
+                    showReadingTime = showReadingTime,
+                    modifier =
+                        Modifier
+                            .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
+                            .graphicsLayer(alpha = itemAlpha),
                 )
             }
 
@@ -267,13 +275,16 @@ fun SwipeableFeedItemPreview(
                     bookmarkIndicator = bookmarkIndicator,
                     maxLines = maxLines,
                     showOnlyTitle = showOnlyTitle,
-                    modifier = Modifier
-                        .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
-                        .graphicsLayer(alpha = itemAlpha),
-                    imageWidth = when (compactLandscape) {
-                        true -> 196.dp
-                        false -> 64.dp
-                    },
+                    showReadingTime = showReadingTime,
+                    modifier =
+                        Modifier
+                            .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
+                            .graphicsLayer(alpha = itemAlpha),
+                    imageWidth =
+                        when (compactLandscape) {
+                            true -> 196.dp
+                            false -> 64.dp
+                        },
                 )
             }
 
@@ -289,9 +300,11 @@ fun SwipeableFeedItemPreview(
                     bookmarkIndicator = bookmarkIndicator,
                     maxLines = maxLines,
                     showOnlyTitle = showOnlyTitle,
-                    modifier = Modifier
-                        .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
-                        .graphicsLayer(alpha = itemAlpha),
+                    showReadingTime = showReadingTime,
+                    modifier =
+                        Modifier
+                            .offset { IntOffset(swipeableState.offset.value.roundToInt(), 0) }
+                            .graphicsLayer(alpha = itemAlpha),
                 )
             }
         }
@@ -301,48 +314,50 @@ fun SwipeableFeedItemPreview(
         // Wrapped in an outer box to get the height set properly
         if (swipeAsRead != SwipeAsRead.DISABLED) {
             Box(
-                modifier = Modifier
-                    .matchParentSize(),
+                modifier =
+                    Modifier
+                        .matchParentSize(),
             ) {
                 val anchors = mutableMapOf(0f to FeedItemSwipeState.NONE)
                 Box(
-                    modifier = Modifier
-                        .run {
-                            @Suppress("KotlinConstantConditions")
-                            when (swipeAsRead) {
-                                // This never actually gets called due to outer if
-                                SwipeAsRead.DISABLED ->
-                                    this
-                                        .height(0.dp)
-                                        .width(0.dp)
+                    modifier =
+                        Modifier
+                            .run {
+                                @Suppress("KotlinConstantConditions")
+                                when (swipeAsRead) {
+                                    // This never actually gets called due to outer if
+                                    SwipeAsRead.DISABLED ->
+                                        this
+                                            .height(0.dp)
+                                            .width(0.dp)
 
-                                SwipeAsRead.ONLY_FROM_END -> {
-                                    anchors[-maxWidthPx] = FeedItemSwipeState.LEFT
-                                    this
-                                        .fillMaxHeight()
-                                        .width(this@BoxWithConstraints.maxWidth / 4)
-                                        .align(Alignment.CenterEnd)
-                                }
+                                    SwipeAsRead.ONLY_FROM_END -> {
+                                        anchors[-maxWidthPx] = FeedItemSwipeState.LEFT
+                                        this
+                                            .fillMaxHeight()
+                                            .width(this@BoxWithConstraints.maxWidth / 4)
+                                            .align(Alignment.CenterEnd)
+                                    }
 
-                                SwipeAsRead.FROM_ANYWHERE -> {
-                                    anchors[-maxWidthPx] = FeedItemSwipeState.LEFT
-                                    anchors[maxWidthPx] = FeedItemSwipeState.RIGHT
-                                    this
-                                        .padding(start = 48.dp)
-                                        .matchParentSize()
+                                    SwipeAsRead.FROM_ANYWHERE -> {
+                                        anchors[-maxWidthPx] = FeedItemSwipeState.LEFT
+                                        anchors[maxWidthPx] = FeedItemSwipeState.RIGHT
+                                        this
+                                            .padding(start = 48.dp)
+                                            .matchParentSize()
+                                    }
                                 }
                             }
-                        }
-                        .swipeable(
-                            state = swipeableState,
-                            anchors = anchors,
-                            orientation = Orientation.Horizontal,
-                            reverseDirection = isRtl,
-                            velocityThreshold = 1000.dp,
-                            thresholds = { _, _ ->
-                                FractionalThreshold(0.50f)
-                            },
-                        ),
+                            .swipeable(
+                                state = swipeableState,
+                                anchors = anchors,
+                                orientation = Orientation.Horizontal,
+                                reverseDirection = isRtl,
+                                velocityThreshold = 1000.dp,
+                                thresholds = { _, _ ->
+                                    FractionalThreshold(0.50f)
+                                },
+                            ),
                 )
             }
         }

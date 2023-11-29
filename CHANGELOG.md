@@ -1,3 +1,142 @@
+# 2.6.9
+Jonas Kalderstam (11):
+  * [2bdade90] Fixed crash when table had no columns
+  * [03924c15] Fixed crash when trying to TTS play a missing file
+  * [cda338b7] Fixed another crash in table rendering
+  * [ccabb499] Fixed crash if trying to notify for too many items
+  * [f1a3a237] Changed so image enclosures are shown in the Reader
+  * [015f0766] Fixed so list items are not immediately given newlines if
+         followed by paragraph
+  * [020c31e7] Moved all dependencies into bundles
+  * [ce8461c1] Changed to ksp and upped kotlin and compose compile
+  * [042daa3a] Bumped android plugin version
+  * [0bcea035] Bumped bunch of versions
+  * [89775af8] Removed bad language
+
+Kazushi Hayama (1):
+  * [b5f4ca49] Updated Japanese translation using Weblate
+
+Vitor Henrique (1):
+  * [28063c3d] Translated using Weblate (Portuguese)
+
+# 2.6.8
+Agnieszka C (1):
+  * [2ffda1a6] Updated Polish translation using Weblate
+
+Eric (1):
+  * [b70dd049] Updated Chinese (Simplified) translation using Weblate
+
+J. Lavoie (1):
+  * [730ecf80] Updated Italian translation using Weblate
+
+Matth78 (1):
+  * [6ca6ba6b] Updated French translation using Weblate
+
+Oğuz Ersen (1):
+  * [ce281b46] Updated Turkish translation using Weblate
+
+Retrial (1):
+  * [091dbaa4] Updated Greek translation using Weblate
+
+VfBFan (1):
+  * [7ddadba4] Updated German translation using Weblate
+
+gallegonovato (1):
+  * [c48624de] Updated Spanish translation using Weblate
+
+ikanakova (1):
+  * [d71d728b] Updated Czech translation using Weblate
+
+mm4c (1):
+  * [4a08a92c] Updated Dutch translation using Weblate
+
+ngocanhtve (1):
+  * [5d76fbeb] Updated Vietnamese translation using Weblate
+
+zmni (1):
+  * [6bdfaad2] Updated Indonesian translation using Weblate
+
+# 2.6.7-1
+Harsha0431 (1):
+  * [b23fd0b6] Updated Telugu translation using Weblate
+
+Jonas Kalderstam (11):
+  * [6d136434] Added option to open links in an adjacent window on large
+         screens
+  * [78678111] Added max age of cached responses with at most 15 mins unless
+         manual sync
+
+Mozart Michael (1):
+  * [df81e402] Updated Romanian translation using Weblate
+
+derdilla (1):
+  * [69682160] Fixed notifications not following settings for item opening
+         (#108)
+
+ngocanhtve (1):
+  * [f9109ce4] Updated Vietnamese translation using Weblate
+
+trunars (1):
+  * [010a2f96] Translated using Weblate (Bulgarian)
+
+# 2.6.7
+Cleydison Nascimento (1):
+  * [e736f383] Updated Portuguese (Brazil) translation using Weblate
+
+Harsha0431 (1):
+  * [b23fd0b6] Updated Telugu translation using Weblate
+
+Jonas Kalderstam (11):
+  * [6d136434] Added option to open links in an adjacent window on large
+         screens
+  * [78678111] Added max age of cached responses with at most 15 mins unless
+         manual sync
+
+Mozart Michael (1):
+  * [df81e402] Updated Romanian translation using Weblate
+
+derdilla (1):
+  * [69682160] Fixed notifications not following settings for item opening
+         (#108)
+
+ngocanhtve (1):
+  * [f9109ce4] Updated Vietnamese translation using Weblate
+
+trunars (1):
+  * [010a2f96] Translated using Weblate (Bulgarian)
+
+# 2.6.6
+bowornsin (1):
+  * [cac00ff3] Updated Thai translation using Weblate
+
+# 2.6.5
+Agnieszka C (1):
+  * [5fa3ac9e] Updated Polish translation using Weblate
+
+ERYpTION (1):
+  * [1f7ede07] Updated Danish translation using Weblate
+
+El Pirujo (1):
+  * [634379b0] Updated Spanish translation using Weblate
+
+Eric (1):
+  * [9c6fe4a1] Updated Chinese (Simplified) translation using Weblate
+
+J. Lavoie (1):
+  * [5a4c5c7b] Updated Italian translation using Weblate
+
+Jonas Kalderstam (1):
+  * [341310e6] Added ability to force add a feed despite network errors
+
+Oğuz Ersen (1):
+  * [88fa51db] Updated Turkish translation using Weblate
+
+Retrial (1):
+  * [5cde4618] Updated Greek translation using Weblate
+
+eevan78 (1):
+  * [1c5976d4] Updated Serbian translation using Weblate
+
 # 2.6.4
 Jonas Kalderstam (7):
   * [ef1a65b0] Improved OPML import when files are incorrect

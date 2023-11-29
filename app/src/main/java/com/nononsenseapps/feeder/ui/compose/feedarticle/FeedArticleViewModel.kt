@@ -38,10 +38,8 @@ import com.nononsenseapps.feeder.ui.compose.feed.FeedListItem
 import com.nononsenseapps.feeder.ui.compose.feed.FeedOrTag
 import com.nononsenseapps.feeder.ui.compose.navdrawer.DrawerItemWithUnreadCount
 import com.nononsenseapps.feeder.ui.compose.text.htmlToAnnotatedString
+import com.nononsenseapps.feeder.util.Either
 import com.nononsenseapps.feeder.util.FilePathProvider
-import java.time.Instant
-import java.time.ZonedDateTime
-import java.util.Locale
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
@@ -56,6 +54,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
 import org.kodein.di.DI
 import org.kodein.di.instance
+import java.io.FileNotFoundException
+import java.time.Instant
+import java.time.ZonedDateTime
+import java.util.Locale
 
 class FeedArticleViewModel(
     di: DI,
@@ -97,20 +99,26 @@ class FeedArticleViewModel(
                 emptyList(),
             )
 
-    fun deleteFeeds(feedIds: List<Long>) = applicationCoroutineScope.launch {
-        repository.deleteFeeds(feedIds)
-    }
+    fun deleteFeeds(feedIds: List<Long>) =
+        applicationCoroutineScope.launch {
+            repository.deleteFeeds(feedIds)
+        }
 
-    fun markAllAsRead() = applicationCoroutineScope.launch {
-        val (feedId, feedTag) = repository.currentFeedAndTag.value
-        repository.markAllAsReadInFeedOrTag(feedId, feedTag)
-    }
+    fun markAllAsRead() =
+        applicationCoroutineScope.launch {
+            val (feedId, feedTag) = repository.currentFeedAndTag.value
+            repository.markAllAsReadInFeedOrTag(feedId, feedTag)
+        }
 
-    fun markAsUnread(itemId: Long) = applicationCoroutineScope.launch {
-        repository.markAsUnread(itemId)
-    }
+    fun markAsUnread(itemId: Long) =
+        applicationCoroutineScope.launch {
+            repository.markAsUnread(itemId)
+        }
 
-    fun markAsRead(itemId: Long, feedOrTag: FeedOrTag?) = applicationCoroutineScope.launch {
+    fun markAsRead(
+        itemId: Long,
+        feedOrTag: FeedOrTag?,
+    ) = applicationCoroutineScope.launch {
         val (feedId, tag) = repository.currentFeedAndTag.value
         // Ensure mark as read on scroll doesn't fire when navigating between feeds
         if (feedOrTag == null || feedId == feedOrTag.id && tag == feedOrTag.tag) {
@@ -118,21 +126,27 @@ class FeedArticleViewModel(
         }
     }
 
-    fun markAsReadOnSwipe(itemId: Long) = applicationCoroutineScope.launch {
-        repository.markAsReadAndNotified(itemId = itemId, readTimeBeforeMinReadTime = true)
-    }
+    fun markAsReadOnSwipe(itemId: Long) =
+        applicationCoroutineScope.launch {
+            repository.markAsReadAndNotified(itemId = itemId, readTimeBeforeMinReadTime = true)
+        }
 
-    fun markBeforeAsRead(cursor: FeedItemCursor) = applicationCoroutineScope.launch {
-        val (feedId, feedTag) = repository.currentFeedAndTag.value
-        repository.markBeforeAsRead(cursor, feedId, feedTag)
-    }
+    fun markBeforeAsRead(cursor: FeedItemCursor) =
+        applicationCoroutineScope.launch {
+            val (feedId, feedTag) = repository.currentFeedAndTag.value
+            repository.markBeforeAsRead(cursor, feedId, feedTag)
+        }
 
-    fun markAfterAsRead(cursor: FeedItemCursor) = applicationCoroutineScope.launch {
-        val (feedId, feedTag) = repository.currentFeedAndTag.value
-        repository.markAfterAsRead(cursor, feedId, feedTag)
-    }
+    fun markAfterAsRead(cursor: FeedItemCursor) =
+        applicationCoroutineScope.launch {
+            val (feedId, feedTag) = repository.currentFeedAndTag.value
+            repository.markAfterAsRead(cursor, feedId, feedTag)
+        }
 
-    fun setBookmarked(itemId: Long, bookmarked: Boolean) = applicationCoroutineScope.launch {
+    fun setBookmarked(
+        itemId: Long,
+        bookmarked: Boolean,
+    ) = applicationCoroutineScope.launch {
         repository.setBookmarked(itemId, bookmarked)
     }
 
@@ -174,11 +188,13 @@ class FeedArticleViewModel(
     fun toggleTagExpansion(tag: String) = repository.toggleTagExpansion(tag)
 
     private val editDialogVisible = MutableStateFlow(false)
+
     fun setShowEditDialog(visible: Boolean) {
         editDialogVisible.update { visible }
     }
 
     private val deleteDialogVisible = MutableStateFlow(false)
+
     fun setShowDeleteDialog(visible: Boolean) {
         deleteDialogVisible.update { visible }
     }
@@ -235,12 +251,16 @@ class FeedArticleViewModel(
 
     // Used to trigger state update
     private val textToDisplayTrigger: MutableStateFlow<Int> = MutableStateFlow(0)
+
     private suspend fun getTextToDisplayFor(itemId: Long): TextToDisplay =
         state["textToDisplayFor$itemId"]
             ?: repository.getTextToDisplayForItem(itemId)
 
     // Only affect the state by design, settings is done in EditFeed
-    private fun setTextToDisplayFor(itemId: Long, value: TextToDisplay) {
+    private fun setTextToDisplayFor(
+        itemId: Long,
+        value: TextToDisplay,
+    ) {
         state["textToDisplayFor$itemId"] = value
         textToDisplayTrigger.update {
             textToDisplayTrigger.value + 1
@@ -277,6 +297,7 @@ class FeedArticleViewModel(
             filterMenuVisible,
             repository.feedListFilter,
             repository.showOnlyTitle,
+            repository.showReadingTime,
         ) { params: Array<Any> ->
             val article = params[16] as Article
 
@@ -285,6 +306,8 @@ class FeedArticleViewModel(
             val haveVisibleFeedItems = (params[8] as Int) > 0
 
             val currentFeedOrTag = params[15] as FeedOrTag
+
+            val textToDisplay = getTextToDisplayFor(article.id)
 
             @Suppress("UNCHECKED_CAST")
             FeedArticleScreenViewState(
@@ -311,7 +334,7 @@ class FeedArticleViewModel(
                 feedDisplayTitle = article.feedDisplayTitle,
                 currentFeedOrTag = currentFeedOrTag,
                 articleLink = article.link,
-                textToDisplay = getTextToDisplayFor(article.id),
+                textToDisplay = textToDisplay,
                 isTTSPlaying = ttsState == PlaybackStatus.PLAYING,
                 isBottomBarVisible = ttsState != PlaybackStatus.STOPPED,
                 articleId = article.id,
@@ -326,6 +349,21 @@ class FeedArticleViewModel(
                 showFilterMenu = params[25] as Boolean,
                 filter = params[26] as FeedListFilter,
                 showOnlyTitle = params[27] as Boolean,
+                showReadingTime = params[28] as Boolean,
+                wordCount =
+                    when (textToDisplay) {
+                        TextToDisplay.DEFAULT -> article.wordCount
+
+                        TextToDisplay.FULLTEXT,
+                        TextToDisplay.LOADING_FULLTEXT,
+                        -> article.wordCountFull
+
+                        TextToDisplay.FAILED_TO_LOAD_FULLTEXT,
+                        TextToDisplay.FAILED_MISSING_BODY,
+                        TextToDisplay.FAILED_MISSING_LINK,
+                        TextToDisplay.FAILED_NOT_HTML,
+                        -> 0
+                    },
             )
         }
             .stateIn(
@@ -353,12 +391,13 @@ class FeedArticleViewModel(
 
         setTextToDisplayFor(itemId, TextToDisplay.LOADING_FULLTEXT)
         val link = viewState.value.articleLink
-        val result = fullTextParser.parseFullArticleIfMissing(
-            object : FeedItemForFetching {
-                override val id = viewState.value.articleId
-                override val link = link
-            },
-        )
+        val result =
+            fullTextParser.parseFullArticleIfMissing(
+                object : FeedItemForFetching {
+                    override val id = viewState.value.articleId
+                    override val link = link
+                },
+            )
 
         setTextToDisplayFor(
             itemId,
@@ -395,41 +434,57 @@ class FeedArticleViewModel(
 
     fun ttsPlay() {
         viewModelScope.launch(Dispatchers.IO) {
-            val fullText = when (viewState.value.textToDisplay) {
-                TextToDisplay.DEFAULT -> {
-                    blobInputStream(viewState.value.articleId, filePathProvider.articleDir).use {
-                        htmlToAnnotatedString(
-                            inputStream = it,
-                            baseUrl = viewState.value.articleFeedUrl ?: "",
-                        )
-                    }
+            val fullText =
+                when (viewState.value.textToDisplay) {
+                    TextToDisplay.DEFAULT ->
+                        Either.catching(
+                            onCatch = {
+                                when (it) {
+                                    is FileNotFoundException -> TTSFileNotFound
+                                    else -> TTSUnknownError
+                                }
+                            },
+                        ) {
+                            blobInputStream(viewState.value.articleId, filePathProvider.articleDir).use {
+                                htmlToAnnotatedString(
+                                    inputStream = it,
+                                    baseUrl = viewState.value.articleFeedUrl ?: "",
+                                )
+                            }
+                        }
+
+                    TextToDisplay.FULLTEXT ->
+                        Either.catching(
+                            onCatch = {
+                                when (it) {
+                                    is FileNotFoundException -> TTSFileNotFound
+                                    else -> TTSUnknownError
+                                }
+                            },
+                        ) {
+                            blobFullInputStream(
+                                viewState.value.articleId,
+                                filePathProvider.fullArticleDir,
+                            ).use {
+                                htmlToAnnotatedString(
+                                    inputStream = it,
+                                    baseUrl = viewState.value.articleFeedUrl ?: "",
+                                )
+                            }
+                        }
+
+                    TextToDisplay.LOADING_FULLTEXT,
+                    TextToDisplay.FAILED_TO_LOAD_FULLTEXT,
+                    TextToDisplay.FAILED_MISSING_BODY,
+                    TextToDisplay.FAILED_MISSING_LINK,
+                    TextToDisplay.FAILED_NOT_HTML,
+                    -> Either.Left(TTSUnknownError)
                 }
 
-                TextToDisplay.FULLTEXT -> {
-                    blobFullInputStream(
-                        viewState.value.articleId,
-                        filePathProvider.fullArticleDir,
-                    ).use {
-                        htmlToAnnotatedString(
-                            inputStream = it,
-                            baseUrl = viewState.value.articleFeedUrl ?: "",
-                        )
-                    }
-                }
-
-                TextToDisplay.LOADING_FULLTEXT,
-                TextToDisplay.FAILED_TO_LOAD_FULLTEXT,
-                TextToDisplay.FAILED_MISSING_BODY,
-                TextToDisplay.FAILED_MISSING_LINK,
-                TextToDisplay.FAILED_NOT_HTML,
-                -> null
-            }
-
-            if (fullText == null) {
-                // TODO show error some message
-            } else {
+            // TODO show error some message
+            fullText.onRight {
                 ttsStateHolder.tts(
-                    textArray = fullText,
+                    textArray = it,
                     useDetectLanguage = viewState.value.useDetectLanguage,
                 )
             }
@@ -477,6 +532,7 @@ interface FeedScreenViewState {
     val markAsReadOnScroll: Boolean
     val maxLines: Int
     val showOnlyTitle: Boolean
+    val showReadingTime: Boolean
     val filter: FeedListFilter
     val showFilterMenu: Boolean
 }
@@ -500,6 +556,7 @@ interface ArticleScreenViewState {
     val feedDisplayTitle: String
     val isBookmarked: Boolean
     val keyHolder: ArticleItemKeyHolder
+    val wordCount: Int
 }
 
 interface ArticleItemKeyHolder {
@@ -513,16 +570,19 @@ interface FeedListFilter {
     val read: Boolean
 }
 
-val emptyFeedListFilter = object : FeedListFilter {
-    override val unread: Boolean = true
-    override val saved: Boolean = false
-    override val recentlyRead: Boolean = false
-    override val read: Boolean = false
-}
+val emptyFeedListFilter =
+    object : FeedListFilter {
+        override val unread: Boolean = true
+        override val saved: Boolean = false
+        override val recentlyRead: Boolean = false
+        override val read: Boolean = false
+    }
 
 interface FeedListFilterCallback {
     fun setSaved(value: Boolean)
+
     fun setRecentlyRead(value: Boolean)
+
     fun setRead(value: Boolean)
 }
 
@@ -534,6 +594,7 @@ val FeedListFilter.onlyUnreadAndSaved: Boolean
 
 object RotatingArticleItemKeyHolder : ArticleItemKeyHolder {
     private var key: Long = 0L
+
     override fun getAndIncrementKey(): Long {
         return key++
     }
@@ -579,7 +640,15 @@ data class FeedArticleScreenViewState(
     override val keyHolder: ArticleItemKeyHolder = RotatingArticleItemKeyHolder,
     override val maxLines: Int = 2,
     override val showOnlyTitle: Boolean = false,
+    override val showReadingTime: Boolean = false,
     override val showFilterMenu: Boolean = false,
     override val filter: FeedListFilter = emptyFeedListFilter,
     val isArticleOpen: Boolean = false,
+    override val wordCount: Int = 0,
 ) : FeedScreenViewState, ArticleScreenViewState
+
+sealed class TSSError
+
+object TTSFileNotFound : TSSError()
+
+object TTSUnknownError : TSSError()

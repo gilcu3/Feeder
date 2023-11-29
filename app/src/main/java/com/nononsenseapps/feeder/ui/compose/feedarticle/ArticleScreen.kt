@@ -68,13 +68,12 @@ import com.nononsenseapps.feeder.ui.compose.theme.SetStatusBarColorToMatchScroll
 import com.nononsenseapps.feeder.ui.compose.utils.ImmutableHolder
 import com.nononsenseapps.feeder.ui.compose.utils.ScreenType
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
+import com.nononsenseapps.feeder.util.ActivityLauncher
 import com.nononsenseapps.feeder.util.FilePathProvider
-import com.nononsenseapps.feeder.util.openLinkInBrowser
-import com.nononsenseapps.feeder.util.openLinkInCustomTab
 import com.nononsenseapps.feeder.util.unicodeWrap
-import java.time.ZonedDateTime
 import org.kodein.di.compose.LocalDI
 import org.kodein.di.instance
+import java.time.ZonedDateTime
 
 @Composable
 fun ArticleScreen(
@@ -85,13 +84,14 @@ fun ArticleScreen(
     BackHandler(onBack = onNavigateUp)
     val viewState: FeedArticleScreenViewState by viewModel.viewState.collectAsStateWithLifecycle()
 
-    val context = LocalContext.current
+    val activityLauncher: ActivityLauncher by LocalDI.current.instance()
 
     // Each article gets its own scroll state. Persists across device rotations, but is cleared
     // when switching articles.
-    val articleListState = key(viewState.articleId) {
-        rememberLazyListState()
-    }
+    val articleListState =
+        key(viewState.articleId) {
+            rememberLazyListState()
+        }
 
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
 
@@ -114,22 +114,26 @@ fun ArticleScreen(
         },
         onShare = {
             if (viewState.articleId > ID_UNSET) {
-                val intent = Intent.createChooser(
-                    Intent(Intent.ACTION_SEND).apply {
-                        if (viewState.articleLink != null) {
-                            putExtra(Intent.EXTRA_TEXT, viewState.articleLink)
-                        }
-                        putExtra(Intent.EXTRA_TITLE, viewState.articleTitle)
-                        type = "text/plain"
-                    },
-                    null,
+                val intent =
+                    Intent.createChooser(
+                        Intent(Intent.ACTION_SEND).apply {
+                            if (viewState.articleLink != null) {
+                                putExtra(Intent.EXTRA_TEXT, viewState.articleLink)
+                            }
+                            putExtra(Intent.EXTRA_TITLE, viewState.articleTitle)
+                            type = "text/plain"
+                        },
+                        null,
+                    )
+                activityLauncher.startActivity(
+                    openAdjacentIfSuitable = false,
+                    intent = intent,
                 )
-                context.startActivity(intent)
             }
         },
         onOpenInCustomTab = {
             viewState.articleLink?.let { link ->
-                openLinkInCustomTab(context, link, toolbarColor)
+                activityLauncher.openLinkInCustomTab(link, toolbarColor)
             }
         },
         onFeedTitleClick = {
@@ -186,23 +190,24 @@ fun ArticleScreen(
         bottomBarVisibleState.targetState = viewState.isBottomBarVisible
     }
 
-    val (focusArticle, focusTopBar) = remember {
-        FocusRequester.createRefs()
-    }
+    val focusArticle = remember { FocusRequester() }
+    val focusTopBar = remember { FocusRequester() }
 
     Scaffold(
-        modifier = modifier
-            .nestedScroll(scrollBehavior.nestedScrollConnection)
-            .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)),
+        modifier =
+            modifier
+                .nestedScroll(scrollBehavior.nestedScrollConnection)
+                .windowInsetsPadding(WindowInsets.navigationBars.only(WindowInsetsSides.Horizontal)),
         contentWindowInsets = WindowInsets.statusBars,
         topBar = {
             SensibleTopAppBar(
-                modifier = Modifier
-                    .focusGroup()
-                    .focusRequester(focusTopBar)
-                    .focusProperties {
-                        down = focusArticle
-                    },
+                modifier =
+                    Modifier
+                        .focusGroup()
+                        .focusRequester(focusTopBar)
+                        .focusProperties {
+                            down = focusArticle
+                        },
                 scrollBehavior = scrollBehavior,
                 title = viewState.feedDisplayTitle,
                 navigationIcon = {
@@ -242,8 +247,9 @@ fun ArticleScreen(
                         Box {
                             IconButton(
                                 onClick = { onShowToolbarMenu(true) },
-                                modifier = Modifier
-                                    .tooltipAnchor(),
+                                modifier =
+                                    Modifier
+                                        .tooltipAnchor(),
                             ) {
                                 Icon(
                                     Icons.Default.MoreVert,
@@ -253,10 +259,11 @@ fun ArticleScreen(
                             DropdownMenu(
                                 expanded = viewState.showToolbarMenu,
                                 onDismissRequest = { onShowToolbarMenu(false) },
-                                modifier = Modifier
-                                    .onKeyEventLikeEscape {
-                                        onShowToolbarMenu(false)
-                                    },
+                                modifier =
+                                    Modifier
+                                        .onKeyEventLikeEscape {
+                                            onShowToolbarMenu(false)
+                                        },
                             ) {
                                 DropdownMenuItem(
                                     onClick = {
@@ -352,13 +359,14 @@ fun ArticleScreen(
             articleListState = articleListState,
             onFeedTitleClick = onFeedTitleClick,
             displayFullText = displayFullText,
-            modifier = Modifier
-                .padding(padding)
-                .focusGroup()
-                .focusRequester(focusArticle)
-                .focusProperties {
-                    up = focusTopBar
-                },
+            modifier =
+                Modifier
+                    .padding(padding)
+                    .focusGroup()
+                    .focusRequester(focusArticle)
+                    .focusProperties {
+                        up = focusTopBar
+                    },
         )
     }
 }
@@ -377,6 +385,7 @@ fun ArticleContent(
     val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
 
     val context = LocalContext.current
+    val activityLauncher: ActivityLauncher by LocalDI.current.instance()
 
     if (viewState.articleId > ID_UNSET &&
         viewState.textToDisplay == TextToDisplay.FULLTEXT &&
@@ -390,9 +399,10 @@ fun ArticleContent(
 
     ReaderView(
         screenType = screenType,
+        wordCount = viewState.wordCount,
         onEnclosureClick = {
             if (viewState.enclosure.present) {
-                openLinkInBrowser(context, viewState.enclosure.link)
+                activityLauncher.openLinkInBrowser(link = viewState.enclosure.link)
             }
         },
         onFeedTitleClick = onFeedTitleClick,
@@ -401,24 +411,25 @@ fun ArticleContent(
         enclosure = viewState.enclosure,
         articleTitle = viewState.articleTitle,
         feedTitle = viewState.feedDisplayTitle,
-        authorDate = when {
-            viewState.author == null && viewState.pubDate != null ->
-                stringResource(
-                    R.string.on_date,
-                    (viewState.pubDate ?: ZonedDateTime.now()).format(dateTimeFormat),
-                )
+        authorDate =
+            when {
+                viewState.author == null && viewState.pubDate != null ->
+                    stringResource(
+                        R.string.on_date,
+                        (viewState.pubDate ?: ZonedDateTime.now()).format(dateTimeFormat),
+                    )
 
-            viewState.author != null && viewState.pubDate != null ->
-                stringResource(
-                    R.string.by_author_on_date,
-                    // Must wrap author in unicode marks to ensure it formats
-                    // correctly in RTL
-                    context.unicodeWrap(viewState.author ?: ""),
-                    (viewState.pubDate ?: ZonedDateTime.now()).format(dateTimeFormat),
-                )
+                viewState.author != null && viewState.pubDate != null ->
+                    stringResource(
+                        R.string.by_author_on_date,
+                        // Must wrap author in unicode marks to ensure it formats
+                        // correctly in RTL
+                        context.unicodeWrap(viewState.author ?: ""),
+                        (viewState.pubDate ?: ZonedDateTime.now()).format(dateTimeFormat),
+                    )
 
-            else -> null
-        },
+                else -> null
+            },
     ) {
         // Can take a composition or two before viewstate is set to its actual values
         if (viewState.articleId > ID_UNSET) {
@@ -432,10 +443,8 @@ fun ArticleContent(
                                     baseUrl = viewState.articleFeedUrl ?: "",
                                     keyHolder = viewState.keyHolder,
                                 ) { link ->
-                                    onLinkClick(
+                                    activityLauncher.openLink(
                                         link = link,
-                                        linkOpener = viewState.linkOpener,
-                                        context = context,
                                         toolbarColor = toolbarColor,
                                     )
                                 }
@@ -473,10 +482,8 @@ fun ArticleContent(
                                     baseUrl = viewState.articleFeedUrl ?: "",
                                     keyHolder = viewState.keyHolder,
                                 ) { link ->
-                                    onLinkClick(
+                                    activityLauncher.openLink(
                                         link = link,
-                                        linkOpener = viewState.linkOpener,
-                                        context = context,
                                         toolbarColor = toolbarColor,
                                     )
                                 }

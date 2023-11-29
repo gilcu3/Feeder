@@ -14,7 +14,9 @@ import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
+import android.os.TransactionTooLargeException
 import android.provider.Browser.EXTRA_CREATE_NEW_TAB
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationCompat.GROUP_ALERT_SUMMARY
@@ -23,6 +25,8 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 import androidx.navigation.NavDeepLinkBuilder
 import com.nononsenseapps.feeder.R
+import com.nononsenseapps.feeder.archmodel.ItemOpener
+import com.nononsenseapps.feeder.archmodel.Repository
 import com.nononsenseapps.feeder.db.COL_LINK
 import com.nononsenseapps.feeder.db.URI_FEEDITEMS
 import com.nononsenseapps.feeder.db.room.FeedDao
@@ -43,8 +47,10 @@ import org.kodein.di.android.closestDI
 import org.kodein.di.instance
 
 const val summaryNotificationId = 2_147_483_646
-private const val channelId = "feederNotifications"
-private const val articleNotificationGroup = "com.nononsenseapps.feeder.ARTICLE"
+private const val CHANNEL_ID = "feederNotifications"
+private const val ARTICLE_NOTIFICATION_GROUP = "com.nononsenseapps.feeder.ARTICLE"
+
+private const val LOG_TAG = "FEEDER_NOTIFY"
 
 suspend fun notify(
     appContext: Context,
@@ -66,44 +72,54 @@ suspend fun notify(
 
     val nm: NotificationManagerCompat by di.instance()
 
+    // If too many it can cause a crash, so it's limited to 20
     val feedItems = getItemsToNotify(di)
 
-    if (feedItems.isNotEmpty()) {
-        if (!updateSummaryOnly) {
-            feedItems.map {
-                it.id.toInt() to singleNotification(appContext, it)
-            }.forEach { (id, notification) ->
-                nm.notify(id, notification)
+    try {
+        if (feedItems.isNotEmpty()) {
+            if (!updateSummaryOnly) {
+                feedItems.map {
+                    it.id.toInt() to singleNotification(appContext, it)
+                }.forEach { (id, notification) ->
+                    nm.notify(id, notification)
+                }
             }
+            // Shown on API Level < 24
+            nm.notify(summaryNotificationId, inboxNotification(appContext, feedItems))
         }
-        // Shown on API Level < 24
-        nm.notify(summaryNotificationId, inboxNotification(appContext, feedItems))
+    } catch (e: TransactionTooLargeException) {
+        // This can happen if there are too many notifications
+        Log.e(LOG_TAG, "Too many notifications", e)
     }
 }
 
-suspend fun cancelNotification(context: Context, feedItemId: Long) =
-    cancelNotifications(context, listOf(feedItemId))
+suspend fun cancelNotification(
+    context: Context,
+    feedItemId: Long,
+) = cancelNotifications(context, listOf(feedItemId))
 
-suspend fun cancelNotifications(context: Context, feedItemIds: List<Long>) =
-    withContext(Dispatchers.Default) {
-        if (ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.POST_NOTIFICATIONS,
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return@withContext
-        }
-
-        val nm = context.notificationManager
-
-        for (feedItemId in feedItemIds) {
-            nm.cancel(feedItemId.toInt())
-        }
-
-        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-            notify(context)
-        }
+suspend fun cancelNotifications(
+    context: Context,
+    feedItemIds: List<Long>,
+) = withContext(Dispatchers.Default) {
+    if (ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.POST_NOTIFICATIONS,
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
+        return@withContext
     }
+
+    val nm = context.notificationManager
+
+    for (feedItemId in feedItemIds) {
+        nm.cancel(feedItemId.toInt())
+    }
+
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+        notify(context)
+    }
+}
 
 /**
  * This is an update operation if channel already exists so it's safe to call multiple times
@@ -117,13 +133,19 @@ private fun createNotificationChannel(context: Context) {
     val notificationManager: NotificationManager =
         context.getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
-    val channel = NotificationChannel(channelId, name, NotificationManager.IMPORTANCE_LOW)
+    val channel = NotificationChannel(CHANNEL_ID, name, NotificationManager.IMPORTANCE_LOW)
     channel.description = description
 
     notificationManager.createNotificationChannel(channel)
 }
 
-private fun singleNotification(context: Context, item: FeedItemWithFeed): Notification {
+private suspend fun singleNotification(
+    context: Context,
+    item: FeedItemWithFeed,
+): Notification {
+    val di by closestDI(context)
+    val repository: Repository by di.instance()
+
     val style = NotificationCompat.BigTextStyle()
     val title = item.plainTitle
     val text = item.feedDisplayTitle
@@ -131,33 +153,47 @@ private fun singleNotification(context: Context, item: FeedItemWithFeed): Notifi
     style.bigText(text)
     style.setBigContentTitle(title)
 
-    val contentIntent = Intent(
-        Intent.ACTION_VIEW,
-        "$DEEP_LINK_BASE_URI/article/${item.id}".toUri(),
-        context,
-        MainActivity::class.java,
-    ).apply {
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
+    val contentIntent =
+        Intent(
+            Intent.ACTION_VIEW,
+            "$DEEP_LINK_BASE_URI/article/${item.id}".toUri(),
+            context,
+            MainActivity::class.java,
+        ).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
 
-    val pendingIntent = PendingIntent.getActivity(
-        context,
-        item.id.toInt(),
-        contentIntent,
-        PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
-    )
+    val pendingIntent =
+        PendingIntent.getActivity(
+            context,
+            item.id.toInt(),
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
+        )
 
     val builder = notificationBuilder(context)
 
     builder.setContentText(text)
         .setContentTitle(title)
-        .setContentIntent(pendingIntent)
-        .setGroup(articleNotificationGroup)
+        .setGroup(ARTICLE_NOTIFICATION_GROUP)
         .setGroupAlertBehavior(GROUP_ALERT_SUMMARY)
         .setDeleteIntent(getPendingDeleteIntent(context, item))
         .setNumber(1)
 
     // Note that notifications must use PNG resources, because there is no compatibility for vector drawables here
+
+    if (repository.getArticleOpener(item.id) == ItemOpener.DEFAULT_BROWSER && item.link != null) {
+        builder.setContentIntent(
+            PendingIntent.getActivity(
+                context,
+                item.id.toInt(),
+                getOpenInDefaultActivityIntent(context, item.id, item.link),
+                PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
+            ),
+        )
+    } else {
+        builder.setContentIntent(pendingIntent)
+    }
 
     item.enclosureLink?.let { enclosureLink ->
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse(enclosureLink))
@@ -174,17 +210,19 @@ private fun singleNotification(context: Context, item: FeedItemWithFeed): Notifi
         )
     }
 
-    item.link?.let { link ->
-        builder.addAction(
-            R.drawable.notification_open_in_browser,
-            context.getString(R.string.open_link_in_browser),
-            PendingIntent.getActivity(
-                context,
-                item.id.toInt(),
-                getOpenInDefaultActivityIntent(context, item.id, link),
-                PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
-            ),
-        )
+    if (repository.getArticleOpener(item.id) != ItemOpener.DEFAULT_BROWSER) {
+        item.link?.let { link ->
+            builder.addAction(
+                R.drawable.notification_open_in_browser,
+                context.getString(R.string.open_link_in_browser),
+                PendingIntent.getActivity(
+                    context,
+                    item.id.toInt(),
+                    getOpenInDefaultActivityIntent(context, item.id, link),
+                    PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
+                ),
+            )
+        }
     }
 
     builder.addAction(
@@ -234,7 +272,10 @@ internal fun getMarkAsReadIntent(
 /**
  * Use this on platforms older than 24 to bundle notifications together
  */
-private fun inboxNotification(context: Context, feedItems: List<FeedItemWithFeed>): Notification {
+private fun inboxNotification(
+    context: Context,
+    feedItems: List<FeedItemWithFeed>,
+): Notification {
     val style = NotificationCompat.InboxStyle()
     val title = context.getString(R.string.updated_feeds)
     val text = feedItems.map { it.feedDisplayTitle }.toSet().joinToString(separator = ", ")
@@ -248,53 +289,57 @@ private fun inboxNotification(context: Context, feedItems: List<FeedItemWithFeed
     // Otherwise we should go to All feeds
     val feedTags = feedItems.map { it.tag }.toSet()
 
-    val deepLinkTag = if (feedTags.size == 1) {
-        feedTags.first()
-    } else {
-        ""
-    }
+    val deepLinkTag =
+        if (feedTags.size == 1) {
+            feedTags.first()
+        } else {
+            ""
+        }
 
     val feedIds = feedItems.map { it.feedId }.toSet()
 
-    val deepLinkId = if (feedIds.size == 1) {
-        feedIds.first() ?: ID_UNSET
-    } else {
-        if (deepLinkTag.isNotEmpty()) {
-            ID_ALL_FEEDS // Tag will take precedence
+    val deepLinkId =
+        if (feedIds.size == 1) {
+            feedIds.first() ?: ID_UNSET
         } else {
-            ID_UNSET // Will default to last open when tag is empty too
+            if (deepLinkTag.isNotEmpty()) {
+                ID_ALL_FEEDS // Tag will take precedence
+            } else {
+                ID_UNSET // Will default to last open when tag is empty too
+            }
         }
-    }
 
     val deepLinkUri =
         "$DEEP_LINK_BASE_URI/feed?id=$deepLinkId&tag=${deepLinkTag.urlEncode()}"
 
-    val contentIntent = Intent(
-        Intent.ACTION_VIEW,
-        deepLinkUri.toUri(),
-        context,
-        OpenLinkInDefaultActivity::class.java, // Proxy activity to mark as read
-    ).apply {
-        putExtra(
-            EXTRA_FEEDITEMS_TO_MARK_AS_NOTIFIED,
-            LongArray(feedItems.size) { i -> feedItems[i].id },
-        )
-        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    }
+    val contentIntent =
+        Intent(
+            Intent.ACTION_VIEW,
+            deepLinkUri.toUri(),
+            context,
+            OpenLinkInDefaultActivity::class.java, // Proxy activity to mark as read
+        ).apply {
+            putExtra(
+                EXTRA_FEEDITEMS_TO_MARK_AS_NOTIFIED,
+                LongArray(feedItems.size) { i -> feedItems[i].id },
+            )
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
 
-    val pendingIntent = PendingIntent.getActivity(
-        context,
-        summaryNotificationId,
-        contentIntent,
-        PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
-    )
+    val pendingIntent =
+        PendingIntent.getActivity(
+            context,
+            summaryNotificationId,
+            contentIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE,
+        )
 
     val builder = notificationBuilder(context)
 
     builder.setContentText(text)
         .setContentTitle(title)
         .setContentIntent(pendingIntent)
-        .setGroup(articleNotificationGroup)
+        .setGroup(ARTICLE_NOTIFICATION_GROUP)
         .setGroupAlertBehavior(GROUP_ALERT_SUMMARY)
         .setGroupSummary(true)
         .setDeleteIntent(getDeleteIntent(context, feedItems))
@@ -304,7 +349,10 @@ private fun inboxNotification(context: Context, feedItems: List<FeedItemWithFeed
     return style.build() ?: error("How null??")
 }
 
-private fun getDeleteIntent(context: Context, feedItems: List<FeedItemWithFeed>): PendingIntent {
+private fun getDeleteIntent(
+    context: Context,
+    feedItems: List<FeedItemWithFeed>,
+): PendingIntent {
     val intent = Intent(context, RssNotificationBroadcastReceiver::class.java)
     intent.action = ACTION_MARK_AS_NOTIFIED
 
@@ -319,7 +367,10 @@ private fun getDeleteIntent(context: Context, feedItems: List<FeedItemWithFeed>)
     )
 }
 
-internal fun getDeleteIntent(context: Context, feedItem: FeedItemWithFeed): Intent {
+internal fun getDeleteIntent(
+    context: Context,
+    feedItem: FeedItemWithFeed,
+): Intent {
     val intent = Intent(context, RssNotificationBroadcastReceiver::class.java)
     intent.action = ACTION_MARK_AS_NOTIFIED
     intent.data = Uri.withAppendedPath(URI_FEEDITEMS, "${feedItem.id}")
@@ -329,7 +380,10 @@ internal fun getDeleteIntent(context: Context, feedItem: FeedItemWithFeed): Inte
     return intent
 }
 
-private fun getPendingDeleteIntent(context: Context, feedItem: FeedItemWithFeed): PendingIntent =
+private fun getPendingDeleteIntent(
+    context: Context,
+    feedItem: FeedItemWithFeed,
+): PendingIntent =
     PendingIntent.getBroadcast(
         context,
         0,
@@ -340,7 +394,7 @@ private fun getPendingDeleteIntent(context: Context, feedItem: FeedItemWithFeed)
 private fun notificationBuilder(context: Context): NotificationCompat.Builder {
     val bm = BitmapFactory.decodeResource(context.resources, R.mipmap.ic_launcher)
 
-    return NotificationCompat.Builder(context, channelId)
+    return NotificationCompat.Builder(context, CHANNEL_ID)
         .setSmallIcon(R.drawable.ic_stat_f)
         .setLargeIcon(bm)
         .setAutoCancel(true)

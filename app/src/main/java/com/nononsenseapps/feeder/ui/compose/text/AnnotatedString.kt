@@ -35,21 +35,32 @@ class AnnotatedParagraphStringBuilder {
             return false
         }
 
-    fun pushVerbatimTtsAnnotation(verbatim: String) =
-        builder.pushTtsAnnotation(VerbatimTtsAnnotation(verbatim))
+    val endsWithNonBreakingSpace: Boolean
+        get() {
+            if (mLastTwoChars.isEmpty()) {
+                return false
+            }
+            mLastTwoChars.peekLatest()?.let { latest ->
+                if (latest.code == 160) {
+                    return true
+                }
+            }
 
-    fun pushStyle(style: SpanStyle): Int =
-        builder.pushStyle(style = style)
+            return false
+        }
 
-    fun pop(index: Int) =
-        builder.pop(index)
+    fun pushVerbatimTtsAnnotation(verbatim: String) = builder.pushTtsAnnotation(VerbatimTtsAnnotation(verbatim))
 
-    fun pushStringAnnotation(tag: String, annotation: String): Int =
-        builder.pushStringAnnotation(tag = tag, annotation = annotation)
+    fun pushStyle(style: SpanStyle): Int = builder.pushStyle(style = style)
 
-    fun pushComposableStyle(
-        style: @Composable () -> SpanStyle,
-    ): Int {
+    fun pop(index: Int) = builder.pop(index)
+
+    fun pushStringAnnotation(
+        tag: String,
+        annotation: String,
+    ): Int = builder.pushStringAnnotation(tag = tag, annotation = annotation)
+
+    fun pushComposableStyle(style: @Composable () -> SpanStyle): Int {
         composableStyles.add(
             ComposableStyleWithStartEnd(
                 style = style,
@@ -59,9 +70,7 @@ class AnnotatedParagraphStringBuilder {
         return composableStyles.lastIndex
     }
 
-    fun popComposableStyle(
-        index: Int,
-    ) {
+    fun popComposableStyle(index: Int) {
         poppedComposableStyles.add(
             composableStyles.removeAt(index).copy(end = builder.length),
         )
@@ -109,6 +118,7 @@ class AnnotatedParagraphStringBuilder {
 }
 
 fun AnnotatedParagraphStringBuilder.isEmpty() = lastTwoChars.isEmpty()
+
 fun AnnotatedParagraphStringBuilder.isNotEmpty() = lastTwoChars.isNotEmpty()
 
 private fun CharSequence.secondToLast(): Char {

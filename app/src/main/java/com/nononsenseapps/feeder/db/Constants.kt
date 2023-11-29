@@ -18,6 +18,7 @@ const val COL_PLAINTITLE = "plain_title"
 const val COL_PLAINSNIPPET = "plain_snippet"
 const val COL_IMAGEURL = "image_url"
 const val COL_ENCLOSURELINK = "enclosure_link"
+const val COL_ENCLOSURE_TYPE = "enclosure_type"
 const val COL_LINK = "link"
 const val COL_AUTHOR = "author"
 const val COL_PUBDATE = "pub_date"
@@ -46,6 +47,8 @@ const val COL_GLOB_PATTERN = "glob_pattern"
 const val COL_FULLTEXT_DOWNLOADED = "fulltext_downloaded"
 const val COL_READ_TIME = "read_time"
 const val COL_SITE_FETCHED = "site_fetched"
+const val COL_WORD_COUNT = "word_count"
+const val COL_WORD_COUNT_FULL = "word_count_full"
 
 // year 5000
 val FAR_FUTURE = Instant.ofEpochSecond(95635369646)

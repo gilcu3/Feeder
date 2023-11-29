@@ -32,6 +32,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
@@ -45,6 +46,7 @@ import coil.size.Size
 import com.nononsenseapps.feeder.R
 import com.nononsenseapps.feeder.db.room.ID_UNSET
 import com.nononsenseapps.feeder.ui.compose.coil.rememberTintedVectorPainter
+import com.nononsenseapps.feeder.ui.compose.feedarticle.wordsToReadTimeSecs
 import com.nononsenseapps.feeder.ui.compose.minimumTouchSize
 import com.nononsenseapps.feeder.ui.compose.text.WithBidiDeterminedLayoutDirection
 import com.nononsenseapps.feeder.ui.compose.theme.FeedListItemDateStyle
@@ -55,9 +57,9 @@ import com.nononsenseapps.feeder.ui.compose.theme.FeederTheme
 import com.nononsenseapps.feeder.ui.compose.theme.titleFontWeight
 import com.nononsenseapps.feeder.ui.compose.utils.ThemePreviews
 import com.nononsenseapps.feeder.ui.compose.utils.onKeyEventLikeEscape
+import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import java.net.URL
 import java.time.Instant
-import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 
 @Composable
 fun FeedItemCard(
@@ -72,6 +74,7 @@ fun FeedItemCard(
     bookmarkIndicator: Boolean,
     maxLines: Int,
     showOnlyTitle: Boolean,
+    showReadingTime: Boolean,
     modifier: Modifier = Modifier,
 ) {
     ElevatedCard(
@@ -79,43 +82,48 @@ fun FeedItemCard(
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier
-                .requiredHeightIn(min = minimumTouchSize),
+            modifier =
+                Modifier
+                    .requiredHeightIn(min = minimumTouchSize),
         ) {
             if (showThumbnail) {
                 item.imageUrl?.let { imageUrl ->
                     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-                        val pixels = with(LocalDensity.current) {
-                            val width = maxWidth.roundToPx()
-                            Size(width, (width * 9) / 16)
-                        }
-                        val alpha = if (item.unread) {
-                            1f
-                        } else {
-                            0.74f
-                        }
+                        val pixels =
+                            with(LocalDensity.current) {
+                                val width = maxWidth.roundToPx()
+                                Size(width, (width * 9) / 16)
+                            }
+                        val alpha =
+                            if (item.unread) {
+                                1f
+                            } else {
+                                0.74f
+                            }
                         AsyncImage(
-                            model = ImageRequest.Builder(LocalContext.current)
-                                .data(imageUrl)
-                                .listener(
-                                    onError = { a, b ->
-                                        Log.e("FEEDER_CARD", "error ${a.data}", b.throwable)
-                                    },
-                                )
-                                .scale(Scale.FILL)
-                                .size(pixels)
-                                .precision(Precision.INEXACT)
-                                .build(),
+                            model =
+                                ImageRequest.Builder(LocalContext.current)
+                                    .data(imageUrl)
+                                    .listener(
+                                        onError = { a, b ->
+                                            Log.e("FEEDER_CARD", "error ${a.data}", b.throwable)
+                                        },
+                                    )
+                                    .scale(Scale.FILL)
+                                    .size(pixels)
+                                    .precision(Precision.INEXACT)
+                                    .build(),
                             placeholder = rememberTintedVectorPainter(Icons.Outlined.Terrain),
                             error = rememberTintedVectorPainter(Icons.Outlined.ErrorOutline),
                             contentDescription = stringResource(id = R.string.article_image),
                             contentScale = ContentScale.Crop,
                             alignment = Alignment.Center,
-                            modifier = Modifier
-                                .clip(MaterialTheme.shapes.medium)
-                                .fillMaxWidth()
-                                .aspectRatio(16.0f / 9.0f)
-                                .alpha(alpha),
+                            modifier =
+                                Modifier
+                                    .clip(MaterialTheme.shapes.medium)
+                                    .fillMaxWidth()
+                                    .aspectRatio(16.0f / 9.0f)
+                                    .alpha(alpha),
                         )
                     }
                 }
@@ -123,8 +131,9 @@ fun FeedItemCard(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .padding(vertical = 8.dp, horizontal = 8.dp),
+                modifier =
+                    Modifier
+                        .padding(vertical = 8.dp, horizontal = 8.dp),
             ) {
                 FeedItemEitherIndicator(
                     bookmarked = item.bookmarked && bookmarkIndicator,
@@ -142,6 +151,7 @@ fun FeedItemCard(
                     onDismissDropdown = onDismissDropdown,
                     maxLines = maxLines,
                     showOnlyTitle = showOnlyTitle,
+                    showReadingTime = showReadingTime,
                 )
             }
         }
@@ -159,29 +169,32 @@ fun RowScope.FeedItemText(
     onDismissDropdown: () -> Unit,
     maxLines: Int,
     showOnlyTitle: Boolean,
+    showReadingTime: Boolean,
     modifier: Modifier = Modifier,
 ) {
     val snippetStyle = FeedListItemSnippetTextStyle()
-    val joinedText = remember(item, showOnlyTitle) {
-        buildAnnotatedString {
-            if (item.title.isNotBlank()) {
-                append(item.title)
-                if (!showOnlyTitle && item.snippet.isNotBlank()) {
-                    withStyle(snippetStyle.toSpanStyle()) {
-                        append('\n')
-                        append(item.snippet)
+    val joinedText =
+        remember(item, showOnlyTitle) {
+            buildAnnotatedString {
+                if (item.title.isNotBlank()) {
+                    append(item.title)
+                    if (!showOnlyTitle && item.snippet.isNotBlank()) {
+                        withStyle(snippetStyle.toSpanStyle()) {
+                            append('\n')
+                            append(item.snippet)
+                        }
                     }
+                } else {
+                    // Heard of one feed which did not have titles. If so always include snippet
+                    append(item.snippet)
                 }
-            } else {
-                // Heard of one feed which did not have titles. If so always include snippet
-                append(item.snippet)
             }
         }
-    }
     Column(
         verticalArrangement = Arrangement.spacedBy(4.dp),
-        modifier = modifier
-            .weight(1f),
+        modifier =
+            modifier
+                .weight(1f),
     ) {
         WithBidiDeterminedLayoutDirection(paragraph = joinedText.text) {
             Text(
@@ -190,16 +203,18 @@ fun RowScope.FeedItemText(
                 fontWeight = titleFontWeight(item.unread),
                 overflow = TextOverflow.Ellipsis,
                 maxLines = maxLines,
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth(),
             )
         }
         // Want the dropdown to center on the middle text row
         Box {
             Row(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
-                modifier = Modifier
-                    .fillMaxWidth(),
+                modifier =
+                    Modifier
+                        .fillMaxWidth(),
             ) {
                 CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
                     WithBidiDeterminedLayoutDirection(paragraph = item.feedTitle) {
@@ -208,8 +223,9 @@ fun RowScope.FeedItemText(
                             style = FeedListItemFeedTitleStyle(),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f),
+                            modifier =
+                                Modifier
+                                    .weight(1f),
                         )
                     }
                     WithBidiDeterminedLayoutDirection(paragraph = item.pubDate) {
@@ -235,12 +251,13 @@ fun RowScope.FeedItemText(
                     },
                     text = {
                         Text(
-                            text = stringResource(
-                                when (item.bookmarked) {
-                                    true -> R.string.unsave_article
-                                    false -> R.string.save_article
-                                },
-                            ),
+                            text =
+                                stringResource(
+                                    when (item.bookmarked) {
+                                        true -> R.string.unsave_article
+                                        false -> R.string.save_article
+                                    },
+                                ),
                         )
                     },
                 )
@@ -279,6 +296,49 @@ fun RowScope.FeedItemText(
                 )
             }
         }
+        if (showReadingTime) {
+            val readTimeSecs =
+                remember(item.wordCount) {
+                    wordsToReadTimeSecs(item.wordCount)
+                }
+            if (readTimeSecs > 0) {
+                CompositionLocalProvider(LocalContentAlpha provides ContentAlpha.medium) {
+                    val readTimeText =
+                        pluralStringResource(id = R.plurals.n_minutes, count = readTimeSecs / 60)
+                            .format(
+                                "${readTimeSecs / 60}:${readTimeSecs % 60}",
+                            )
+                    val wordCountText =
+                        pluralStringResource(id = R.plurals.n_words, count = item.wordCount)
+                            .format(item.wordCount)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier =
+                            Modifier
+                                .fillMaxWidth(),
+                    ) {
+                        WithBidiDeterminedLayoutDirection(paragraph = readTimeText) {
+                            Text(
+                                text = readTimeText,
+                                style = FeedListItemFeedTitleStyle(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                        WithBidiDeterminedLayoutDirection(paragraph = wordCountText) {
+                            Text(
+                                text = wordCountText,
+                                style = FeedListItemFeedTitleStyle(),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier,
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -287,20 +347,22 @@ fun RowScope.FeedItemText(
 private fun Preview() {
     FeederTheme {
         FeedItemCard(
-            item = FeedListItem(
-                title = "title",
-                snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
-                feedTitle = "Super Duper Feed One two three hup di too dasf dsaf asd fsa dfasdf",
-                pubDate = "Jun 9, 2021",
-                unread = true,
-                imageUrl = null,
-                link = null,
-                id = ID_UNSET,
-                bookmarked = true,
-                feedImageUrl = null,
-                primarySortTime = Instant.EPOCH,
-                rawPubDate = null,
-            ),
+            item =
+                FeedListItem(
+                    title = "title",
+                    snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
+                    feedTitle = "Super Duper Feed One two three hup di too dasf dsaf asd fsa dfasdf",
+                    pubDate = "Jun 9, 2021",
+                    unread = true,
+                    imageUrl = null,
+                    link = null,
+                    id = ID_UNSET,
+                    bookmarked = true,
+                    feedImageUrl = null,
+                    primarySortTime = Instant.EPOCH,
+                    rawPubDate = null,
+                    wordCount = 588,
+                ),
             showThumbnail = true,
             onMarkAboveAsRead = {},
             onMarkBelowAsRead = {},
@@ -308,9 +370,10 @@ private fun Preview() {
             onToggleBookmarked = {},
             dropDownMenuExpanded = false,
             onDismissDropdown = {},
+            bookmarkIndicator = true,
             maxLines = 2,
             showOnlyTitle = false,
-            bookmarkIndicator = true,
+            showReadingTime = true,
         )
     }
 }
@@ -323,20 +386,22 @@ private fun PreviewWithImageUnread() {
             modifier = Modifier.width((300 - 2 * 16).dp),
         ) {
             FeedItemCard(
-                item = FeedListItem(
-                    title = "title can be one line",
-                    snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
-                    feedTitle = "Super Feed",
-                    pubDate = "Jun 9, 2021",
-                    unread = true,
-                    imageUrl = "blabla",
-                    link = null,
-                    id = ID_UNSET,
-                    bookmarked = false,
-                    feedImageUrl = URL("https://foo/bar.png"),
-                    primarySortTime = Instant.EPOCH,
-                    rawPubDate = null,
-                ),
+                item =
+                    FeedListItem(
+                        title = "title can be one line",
+                        snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
+                        feedTitle = "Super Feed",
+                        pubDate = "Jun 9, 2021",
+                        unread = true,
+                        imageUrl = "blabla",
+                        link = null,
+                        id = ID_UNSET,
+                        bookmarked = false,
+                        feedImageUrl = URL("https://foo/bar.png"),
+                        primarySortTime = Instant.EPOCH,
+                        rawPubDate = null,
+                        wordCount = 939,
+                    ),
                 showThumbnail = true,
                 onMarkAboveAsRead = {},
                 onMarkBelowAsRead = {},
@@ -344,9 +409,10 @@ private fun PreviewWithImageUnread() {
                 onToggleBookmarked = {},
                 dropDownMenuExpanded = false,
                 onDismissDropdown = {},
+                bookmarkIndicator = true,
                 maxLines = 2,
                 showOnlyTitle = false,
-                bookmarkIndicator = true,
+                showReadingTime = true,
             )
         }
     }
@@ -360,20 +426,22 @@ private fun PreviewWithImageRead() {
             modifier = Modifier.width((300 - 2 * 16).dp),
         ) {
             FeedItemCard(
-                item = FeedListItem(
-                    title = "title can be one line",
-                    snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
-                    feedTitle = "Super Duper Feed",
-                    pubDate = "Jun 9, 2021",
-                    unread = false,
-                    imageUrl = "blabla",
-                    link = null,
-                    id = ID_UNSET,
-                    bookmarked = true,
-                    feedImageUrl = null,
-                    primarySortTime = Instant.EPOCH,
-                    rawPubDate = null,
-                ),
+                item =
+                    FeedListItem(
+                        title = "title can be one line",
+                        snippet = "snippet which is quite long as you might expect from a snipper of a story. It keeps going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and going and snowing",
+                        feedTitle = "Super Duper Feed",
+                        pubDate = "Jun 9, 2021",
+                        unread = false,
+                        imageUrl = "blabla",
+                        link = null,
+                        id = ID_UNSET,
+                        bookmarked = true,
+                        feedImageUrl = null,
+                        primarySortTime = Instant.EPOCH,
+                        rawPubDate = null,
+                        wordCount = 950,
+                    ),
                 showThumbnail = true,
                 onMarkAboveAsRead = {},
                 onMarkBelowAsRead = {},
@@ -381,9 +449,10 @@ private fun PreviewWithImageRead() {
                 onToggleBookmarked = {},
                 dropDownMenuExpanded = false,
                 onDismissDropdown = {},
+                bookmarkIndicator = true,
                 maxLines = 2,
                 showOnlyTitle = false,
-                bookmarkIndicator = true,
+                showReadingTime = true,
             )
         }
     }

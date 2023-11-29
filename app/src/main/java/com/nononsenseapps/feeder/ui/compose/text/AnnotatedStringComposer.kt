@@ -9,7 +9,8 @@ class AnnotatedStringComposer : HtmlParser() {
         strings
 
     override fun emitParagraph(): Boolean {
-        if (builder.isEmpty()) {
+        // List items emit dots and non-breaking space. Don't newline after that
+        if (builder.isEmpty() || builder.endsWithNonBreakingSpace) {
             // Nothing to emit, and nothing to reset
             return false
         }
@@ -32,10 +33,11 @@ class AnnotatedStringComposer : HtmlParser() {
         for (span in spanStack) {
             when (span) {
                 is SpanWithStyle -> builder.pushStyle(span.spanStyle)
-                is SpanWithAnnotation -> builder.pushStringAnnotation(
-                    tag = span.tag,
-                    annotation = span.annotation,
-                )
+                is SpanWithAnnotation ->
+                    builder.pushStringAnnotation(
+                        tag = span.tag,
+                        annotation = span.annotation,
+                    )
 
                 is SpanWithComposableStyle -> builder.pushComposableStyle(span.spanStyle)
                 is SpanWithVerbatim -> builder.pushVerbatimTtsAnnotation(span.verbatim)

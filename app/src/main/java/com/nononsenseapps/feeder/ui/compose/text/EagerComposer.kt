@@ -26,16 +26,17 @@ class EagerComposer(
         emitParagraph()
 
         val url = link ?: findClosestLink()
-        val onClick: (() -> Unit) = when {
-            url?.isNotBlank() == true -> {
-                {
-                    onLinkClick(url)
+        val onClick: (() -> Unit) =
+            when {
+                url?.isNotBlank() == true -> {
+                    {
+                        onLinkClick(url)
+                    }
+                }
+                else -> {
+                    {}
                 }
             }
-            else -> {
-                {}
-            }
-        }
 
         paragraphs.add {
             block(onClick)
@@ -43,7 +44,8 @@ class EagerComposer(
     }
 
     override fun emitParagraph(): Boolean {
-        if (builder.isEmpty()) {
+        // List items emit dots and non-breaking space. Don't newline after that
+        if (builder.isEmpty() || builder.endsWithNonBreakingSpace) {
             // Nothing to emit, and nothing to reset
             return false
         }
@@ -66,10 +68,11 @@ class EagerComposer(
         for (span in spanStack) {
             when (span) {
                 is SpanWithStyle -> builder.pushStyle(span.spanStyle)
-                is SpanWithAnnotation -> builder.pushStringAnnotation(
-                    tag = span.tag,
-                    annotation = span.annotation,
-                )
+                is SpanWithAnnotation ->
+                    builder.pushStringAnnotation(
+                        tag = span.tag,
+                        annotation = span.annotation,
+                    )
                 is SpanWithComposableStyle -> builder.pushComposableStyle(span.spanStyle)
                 is SpanWithVerbatim -> builder.pushVerbatimTtsAnnotation(span.verbatim)
             }
